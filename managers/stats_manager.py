@@ -5,140 +5,213 @@ import datetime
 import os
 import time
 import threading 
+import logging 
 from pynput import mouse
 from typing import Optional
 
+from config.preference_manager import PreferenceManager
+from utils.service_locator import service_locator
+
+
 # --- Constants ---
 DB_FILE = 'data/stats.db'
-INACTIVITY_THRESHOLD_SECONDS = 2 # Defines the duration after which mouse inactivity is detected
+INACTIVITY_THRESHOLD_SECONDS = 2 
 
 class StatsManager:
     """
-    Manages all mouse and application-related statistics using SQLite for data persistence.
-    This class encapsulates all database logic and is designed to be thread-safe.
-    It tracks mouse distance, clicks, and user activity time.
+    Gère toutes les statistiques liées à la souris et à l'application, 
+    en utilisant SQLite pour la persistance des données.
+    Cette classe encapsule toute la logique de la base de données et est conçue pour être thread-safe.
+    Elle suit la distance de la souris, les clics et le temps d'activité de l'utilisateur.
     """
 
     def __init__(self):
-        self._conn = None
-        self._cursor = None
-        self._db_lock = threading.Lock() # Ensures thread-safe access to the database connection
+        self.logger = logging.getLogger(__name__) 
+        self.logger.info("Initialisation de StatsManager...")
+
+        self._conn: Optional[sqlite3.Connection] = None
+        self._cursor: Optional[sqlite3.Cursor] = None
+        self._db_lock = threading.Lock() 
         
         self.today = datetime.date.today().isoformat()
-        self.last_mouse_position = None
-        self.last_activity_time = time.time()
-        self.is_active = True 
-        self._stop_tracker = False # Flag to signal the activity tracking thread to stop
+        self.last_mouse_position: Optional[tuple[int, int]] = None
+        self.last_activity_time: float = time.time()
+        self.is_active: bool = True 
+        self._stop_tracker: bool = False
 
         self._connect_db() 
         
-        # Load or create today's stats entry into memory for real-time updates
-        self._current_day_stats_in_memory = self._get_or_create_todays_entry()
-        self._initialize_app_settings()
+        self._current_day_stats_in_memory: dict = self._get_or_create_todays_entry()
+        self._initialize_app_settings() 
 
-        # Start the activity tracking thread
         self._activity_tracker_thread = threading.Thread(target=self._run_activity_tracker, daemon=True)
         self._activity_tracker_thread.start()
+        self.logger.info("StatsManager initialisé et tracker d'activité démarré.")
 
     def _connect_db(self):
-        """Establishes connection to the SQLite database and creates tables if they don't exist."""
-        os.makedirs(os.path.dirname(DB_FILE), exist_ok=True)
-        # Using check_same_thread=False allows multiple threads to use the same connection,
-        # but _db_lock is crucial for protecting writes.
-        self._conn = sqlite3.connect(DB_FILE, check_same_thread=False) 
-        self._conn.row_factory = sqlite3.Row # Allows accessing columns by name
-        self._cursor = self._conn.cursor()
-        
-        with self._db_lock: 
-            self._create_tables()
+        """Établit la connexion à la base de données SQLite et crée les tables si elles n'existent pas."""
+        self.logger.info(f"Connexion à la base de données: {DB_FILE}")
+        try:
+            os.makedirs(os.path.dirname(DB_FILE), exist_ok=True)
+            self._conn = sqlite3.connect(DB_FILE, check_same_thread=False) 
+            if self._conn: 
+                self._conn.row_factory = sqlite3.Row 
+                self._cursor = self._conn.cursor()
+                with self._db_lock: 
+                    self._create_tables()
+                self.logger.info("Connexion à la base de données établie et tables vérifiées/créées.")
+            else:
+                self.logger.critical("Échec de l'établissement de la connexion à la base de données, _conn est None.")
+        except sqlite3.Error as e:
+            self.logger.critical(f"Erreur SQLite lors de la connexion ou de la création des tables: {e}", exc_info=True)
+            raise 
+        except OSError as e:
+            self.logger.critical(f"Erreur OS lors de la création du répertoire pour la base de données: {e}", exc_info=True)
+            raise
+
 
     def _create_tables(self):
-        """Creates the necessary database tables (daily_stats and app_settings)."""
-        self._cursor.execute('''
-            CREATE TABLE IF NOT EXISTS daily_stats (
-                date TEXT PRIMARY KEY,
-                distance_pixels REAL DEFAULT 0.0,
-                left_clicks INTEGER DEFAULT 0,
-                right_clicks INTEGER DEFAULT 0,
-                middle_clicks INTEGER DEFAULT 0,
-                active_time_seconds INTEGER DEFAULT 0,
-                inactive_time_seconds INTEGER DEFAULT 0
-            )
-        ''')
-        self._cursor.execute('''
-            CREATE TABLE IF NOT EXISTS app_settings (
-                key TEXT PRIMARY KEY,
-                value TEXT
-            )
-        ''')
-        self._conn.commit() # Commit table creation
+        """Crée les tables nécessaires (daily_stats et app_settings) si elles n'existent pas."""
+        if not self._cursor or not self._conn:
+            self.logger.error("Impossible de créer les tables: curseur ou connexion non initialisé.")
+            return
+        try:
+            self.logger.debug("Création/vérification de la table 'daily_stats'.")
+            self._cursor.execute('''
+                CREATE TABLE IF NOT EXISTS daily_stats (
+                    date TEXT PRIMARY KEY,
+                    distance_pixels REAL DEFAULT 0.0,
+                    left_clicks INTEGER DEFAULT 0,
+                    right_clicks INTEGER DEFAULT 0,
+                    middle_clicks INTEGER DEFAULT 0,
+                    active_time_seconds INTEGER DEFAULT 0,
+                    inactive_time_seconds INTEGER DEFAULT 0
+                )
+            ''')
+            self.logger.debug("Création/vérification de la table 'app_settings'.")
+            self._cursor.execute('''
+                CREATE TABLE IF NOT EXISTS app_settings (
+                    key TEXT PRIMARY KEY,
+                    value TEXT
+                )
+            ''')
+            self._conn.commit()
+            self.logger.info("Tables 'daily_stats' et 'app_settings' assurées d'exister.")
+        except sqlite3.Error as e:
+            self.logger.error(f"Erreur SQLite lors de la création des tables: {e}", exc_info=True)
+
 
     def _initialize_app_settings(self):
-        """Ensures essential application settings (like first launch date) are present in DB."""
-        with self._db_lock: 
-            self._cursor.execute("SELECT value FROM app_settings WHERE key = 'first_launch_date'")
-            if self._cursor.fetchone() is None:
-                today_str = datetime.date.today().isoformat()
-                self._cursor.execute(
-                    "INSERT INTO app_settings (key, value) VALUES (?, ?)", 
-                    ('first_launch_date', today_str)
-                )
-                self._conn.commit()
-
-    def _get_or_create_todays_entry(self):
         """
-        Retrieves today's stats from the database or creates a new entry if none exists.
-        Returns the current day's stats as a dictionary.
+        S'assure que les paramètres essentiels de l'application (comme la date de premier lancement) 
+        sont présents dans la base de données.
+        La date de premier lancement est lue depuis PreferenceManager.
         """
-        with self._db_lock: 
-            self._cursor.execute(
-                "SELECT * FROM daily_stats WHERE date = ?", 
-                (self.today,)
-            )
-            row = self._cursor.fetchone()
+        if not self._cursor or not self._conn:
+            self.logger.error("Impossible d'initialiser app_settings: curseur ou connexion non initialisé.")
+            return
 
-            if row is None:
-                self._cursor.execute(
-                    "INSERT INTO daily_stats (date) VALUES (?)", 
-                    (self.today,)
-                )
-                self._conn.commit() 
-                # Fetch the newly created row
+        with self._db_lock: 
+            try:
+                self.logger.debug("Vérification de 'first_launch_date' dans app_settings.")
+                self._cursor.execute("SELECT value FROM app_settings WHERE key = 'first_launch_date'")
+                if self._cursor.fetchone() is None:
+                    self.logger.info("'first_launch_date' non trouvée dans la BDD. Tentative de lecture depuis PreferenceManager.")
+                    try:
+                        preference_manager: PreferenceManager = service_locator.get_service("preference_manager")
+                        first_launch_date_str = preference_manager.get_first_launch_date()
+                        self.logger.info(f"Insertion de 'first_launch_date' ({first_launch_date_str}) dans la BDD.")
+                        self._cursor.execute(
+                            "INSERT INTO app_settings (key, value) VALUES (?, ?)", 
+                            ('first_launch_date', first_launch_date_str)
+                        )
+                        self._conn.commit()
+                        self.logger.info("'first_launch_date' initialisée dans la BDD avec succès.")
+                    except Exception as e: 
+                        self.logger.error(f"Erreur lors de la récupération ou de l'insertion de 'first_launch_date' depuis PreferenceManager: {e}", exc_info=True)
+                else:
+                    self.logger.debug("'first_launch_date' déjà présente dans la BDD.")
+            except sqlite3.Error as e:
+                self.logger.error(f"Erreur SQLite lors de l'initialisation de app_settings: {e}", exc_info=True)
+
+
+    def _get_or_create_todays_entry(self) -> dict:
+        """
+        Récupère les statistiques du jour depuis la base de données ou crée une nouvelle entrée si aucune n'existe.
+        Retourne les statistiques du jour courant sous forme de dictionnaire.
+        """
+        if not self._cursor or not self._conn:
+            self.logger.error("Impossible d'obtenir l'entrée du jour: curseur ou connexion non initialisé.")
+            return self._get_initial_daily_stats_structure()
+
+        with self._db_lock:
+            try:
+                self.logger.debug(f"Recherche des stats pour la date: {self.today}")
                 self._cursor.execute(
                     "SELECT * FROM daily_stats WHERE date = ?", 
                     (self.today,)
                 )
                 row = self._cursor.fetchone()
-            
-            return dict(row) if row else self._get_initial_daily_stats_structure()
+
+                if row is None:
+                    self.logger.info(f"Aucune entrée pour {self.today}, création d'une nouvelle entrée.")
+                    self._cursor.execute(
+                        "INSERT INTO daily_stats (date) VALUES (?)", 
+                        (self.today,)
+                    )
+                    self._conn.commit() 
+                    self._cursor.execute(
+                        "SELECT * FROM daily_stats WHERE date = ?", 
+                        (self.today,)
+                    )
+                    row = self._cursor.fetchone()
+                    self.logger.info(f"Nouvelle entrée créée pour {self.today}.")
+                else:
+                    self.logger.debug(f"Entrée trouvée pour {self.today}.")
+                
+                return dict(row) if row else self._get_initial_daily_stats_structure()
+            except sqlite3.Error as e:
+                self.logger.error(f"Erreur SQLite dans _get_or_create_todays_entry: {e}", exc_info=True)
+                return self._get_initial_daily_stats_structure()
+
 
     def _update_todays_entry_in_db(self):
-        """Updates the current day's stats in the database with in-memory values."""
+        """Met à jour les statistiques du jour courant dans la base de données avec les valeurs en mémoire."""
+        if not self._cursor or not self._conn:
+            self.logger.error("Impossible de mettre à jour l'entrée du jour en BDD: curseur ou connexion non initialisé.")
+            return
+            
+        self.logger.debug(f"Mise à jour de l'entrée du jour ({self.today}) dans la BDD.")
         with self._db_lock: 
-            self._cursor.execute('''
-                UPDATE daily_stats
-                SET distance_pixels = ?, left_clicks = ?, right_clicks = ?, middle_clicks = ?,
-                    active_time_seconds = ?, inactive_time_seconds = ?
-                WHERE date = ?
-            ''', (
-                self._current_day_stats_in_memory['distance_pixels'],
-                self._current_day_stats_in_memory['left_clicks'],
-                self._current_day_stats_in_memory['right_clicks'],
-                self._current_day_stats_in_memory['middle_clicks'],
-                self._current_day_stats_in_memory['active_time_seconds'],
-                self._current_day_stats_in_memory['inactive_time_seconds'],
-                self.today
-            ))
-            # No commit here; commit is handled by save_changes() which is called externally.
+            try:
+                self._cursor.execute('''
+                    UPDATE daily_stats
+                    SET distance_pixels = ?, left_clicks = ?, right_clicks = ?, middle_clicks = ?,
+                        active_time_seconds = ?, inactive_time_seconds = ?
+                    WHERE date = ?
+                ''', (
+                    self._current_day_stats_in_memory['distance_pixels'],
+                    self._current_day_stats_in_memory['left_clicks'],
+                    self._current_day_stats_in_memory['right_clicks'],
+                    self._current_day_stats_in_memory['middle_clicks'],
+                    self._current_day_stats_in_memory['active_time_seconds'],
+                    self._current_day_stats_in_memory['inactive_time_seconds'],
+                    self.today
+                ))
+            except sqlite3.Error as e:
+                self.logger.error(f"Erreur SQLite dans _update_todays_entry_in_db: {e}", exc_info=True)
+
 
     def _run_activity_tracker(self):
         """
-        This thread periodically checks for mouse activity to update active/inactive time.
-        It also handles daily rollover of statistics.
+        Thread qui vérifie périodiquement l'activité de la souris pour mettre à jour le temps actif/inactif.
+        Gère également le basculement quotidien des statistiques.
         """
+        self.logger.info("Thread de suivi d'activité démarré.")
         while not self._stop_tracker:
             time.sleep(1) 
-            if self._stop_tracker: # Check again after sleep to respond quickly to shutdown signal
+            if self._stop_tracker:
+                self.logger.debug("Signal d'arrêt reçu par le tracker d'activité (après sleep).")
                 break
 
             current_time = time.time()
@@ -146,32 +219,34 @@ class StatsManager:
 
             current_date = datetime.date.today().isoformat()
             if self.today != current_date:
-                # New day detected: save current day's stats, reset for new day
+                self.logger.info(f"Nouveau jour détecté: {current_date}. Ancien jour: {self.today}.")
                 self.save_changes() 
                 self.today = current_date
                 self._current_day_stats_in_memory = self._get_or_create_todays_entry()
                 self.last_activity_time = current_time 
                 self.is_active = True 
+                self.logger.info(f"Statistiques réinitialisées pour le nouveau jour: {self.today}.")
 
-            # Update active/inactive time based on activity threshold
             if time_since_last_activity <= INACTIVITY_THRESHOLD_SECONDS:
-                if not self.is_active: # Transition from inactive to active
+                if not self.is_active:
+                    self.logger.debug("Transition: Inactif -> Actif")
                     self.is_active = True
                 self._current_day_stats_in_memory['active_time_seconds'] += 1
             else:
-                if self.is_active: # Transition from active to inactive
+                if self.is_active:
+                    self.logger.debug("Transition: Actif -> Inactif")
                     self.is_active = False
                 self._current_day_stats_in_memory['inactive_time_seconds'] += 1
+        self.logger.info("Thread de suivi d'activité terminé.")
 
-    # --- Public Methods: StatsManager Interface ---
 
     def increment_click(self, button: mouse.Button):
         """
-        Increments the click count for the specified mouse button.
-        Handles daily rollover if a new day has started.
+        Incrémente le compteur de clics pour le bouton de souris spécifié.
         """
         current_date = datetime.date.today().isoformat()
-        if self.today != current_date:
+        if self.today != current_date: 
+            self.logger.info(f"Changement de jour détecté dans increment_click (de {self.today} à {current_date}).")
             self.save_changes() 
             self.today = current_date
             self._current_day_stats_in_memory = self._get_or_create_todays_entry() 
@@ -183,18 +258,23 @@ class StatsManager:
         elif button == mouse.Button.middle:
             self._current_day_stats_in_memory['middle_clicks'] += 1
         
-        self.last_activity_time = time.time() # Mark activity
-        self.is_active = True 
+        self.logger.debug(f"Clic {button} incrémenté. Stats du jour: L={self._current_day_stats_in_memory['left_clicks']}, M={self._current_day_stats_in_memory['middle_clicks']}, R={self._current_day_stats_in_memory['right_clicks']}")
+        
+        self.last_activity_time = time.time()
+        if not self.is_active: 
+            self.logger.debug("Clic détecté pendant inactivité, passage à actif.")
+            self.is_active = True
+
 
     def update_mouse_position(self, x: int, y: int):
         """
-        Updates the total mouse distance based on the new position.
-        Handles daily rollover and updates last activity time.
+        Met à jour la distance totale de la souris en fonction de la nouvelle position.
         """
         current_time = time.time()
         
         current_date = datetime.date.today().isoformat()
-        if self.today != current_date:
+        if self.today != current_date: 
+            self.logger.info(f"Changement de jour détecté dans update_mouse_position (de {self.today} à {current_date}).")
             self.save_changes() 
             self.today = current_date
             self._current_day_stats_in_memory = self._get_or_create_todays_entry() 
@@ -206,106 +286,175 @@ class StatsManager:
 
         self.last_mouse_position = (x, y)
         self.last_activity_time = current_time 
-        self.is_active = True 
+        if not self.is_active: 
+            self.logger.debug("Mouvement détecté pendant inactivité, passage à actif.")
+            self.is_active = True 
         
+
     def get_todays_stats(self) -> dict:
-        """Returns the current day's statistics from memory."""
-        return self._current_day_stats_in_memory
+        """Retourne les statistiques du jour courant depuis la mémoire."""
+        return self._current_day_stats_in_memory # CORRIGÉ ICI
+
 
     def get_global_stats(self) -> dict:
         """
-        Calculates and returns aggregated statistics from all recorded days in the database.
-        Ensures current day's changes are saved before querying.
+        Calcule et retourne les statistiques agrégées de tous les jours enregistrés dans la base de données.
+        S'assure que les changements du jour courant sont sauvegardés avant la requête.
         """
-        self.save_changes() # Ensure current in-memory stats are persisted before global query
+        self.logger.debug("Demande de récupération des statistiques globales.")
+        self.save_changes()
 
         with self._db_lock: 
-            self._cursor.execute('''
-                SELECT
-                    SUM(distance_pixels) AS total_distance_pixels,
-                    SUM(left_clicks) AS total_left_clicks,
-                    SUM(right_clicks) AS total_right_clicks,
-                    SUM(middle_clicks) AS total_middle_clicks,
-                    SUM(active_time_seconds) AS total_active_time_seconds,
-                    SUM(inactive_time_seconds) AS total_inactive_time_seconds
-                FROM daily_stats
-            ''')
-            row = self._cursor.fetchone()
-            
-            # Return 0 for None values if no data exists yet
-            return {
-                'total_distance_pixels': row['total_distance_pixels'] if row and row['total_distance_pixels'] is not None else 0.0,
-                'left_clicks': row['total_left_clicks'] if row and row['total_left_clicks'] is not None else 0,
-                'right_clicks': row['total_right_clicks'] if row and row['total_right_clicks'] is not None else 0,
-                'middle_clicks': row['total_middle_clicks'] if row and row['total_middle_clicks'] is not None else 0,
-                'total_active_time_seconds': row['total_active_time_seconds'] if row and row['total_active_time_seconds'] is not None else 0,
-                'total_inactive_time_seconds': row['total_inactive_time_seconds'] if row and row['total_inactive_time_seconds'] is not None else 0,
-            }
+            if not self._cursor:
+                self.logger.error("Impossible de récupérer les stats globales: curseur non initialisé.")
+                return self._get_empty_global_stats_structure()
+            try:
+                self._cursor.execute('''
+                    SELECT
+                        SUM(distance_pixels) AS total_distance_pixels,
+                        SUM(left_clicks) AS total_left_clicks,
+                        SUM(right_clicks) AS total_right_clicks,
+                        SUM(middle_clicks) AS total_middle_clicks,
+                        SUM(active_time_seconds) AS total_active_time_seconds,
+                        SUM(inactive_time_seconds) AS total_inactive_time_seconds
+                    FROM daily_stats
+                ''')
+                row = self._cursor.fetchone()
+                self.logger.debug(f"Stats globales brutes récupérées de la BDD: {dict(row) if row else 'None'}")
+                
+                return {
+                    'total_distance_pixels': row['total_distance_pixels'] if row and row['total_distance_pixels'] is not None else 0.0,
+                    'left_clicks': row['total_left_clicks'] if row and row['total_left_clicks'] is not None else 0,
+                    'right_clicks': row['total_right_clicks'] if row and row['total_right_clicks'] is not None else 0,
+                    'middle_clicks': row['total_middle_clicks'] if row and row['total_middle_clicks'] is not None else 0,
+                    'total_active_time_seconds': row['total_active_time_seconds'] if row and row['total_active_time_seconds'] is not None else 0,
+                    'total_inactive_time_seconds': row['total_inactive_time_seconds'] if row and row['total_inactive_time_seconds'] is not None else 0,
+                }
+            except sqlite3.Error as e:
+                self.logger.error(f"Erreur SQLite dans get_global_stats: {e}", exc_info=True)
+                return self._get_empty_global_stats_structure()
+
 
     def get_first_launch_date(self) -> Optional[str]:
-        """Retrieves the recorded first launch date of the application."""
+        """Récupère la date de premier lancement enregistrée de l'application."""
         with self._db_lock: 
-            self._cursor.execute("SELECT value FROM app_settings WHERE key = 'first_launch_date'")
-            row = self._cursor.fetchone()
-            return row['value'] if row else None
+            if not self._cursor:
+                self.logger.error("Impossible de récupérer la date de premier lancement: curseur non initialisé.")
+                return None
+            try:
+                self._cursor.execute("SELECT value FROM app_settings WHERE key = 'first_launch_date'")
+                row = self._cursor.fetchone()
+                date_val = row['value'] if row else None
+                return date_val
+            except sqlite3.Error as e:
+                self.logger.error(f"Erreur SQLite dans get_first_launch_date: {e}", exc_info=True)
+                return None
+
 
     def reset_todays_stats(self):
-        """Resets all statistics for the current day to zero."""
+        """Réinitialise toutes les statistiques du jour courant à zéro."""
+        self.logger.info(f"Demande de réinitialisation des statistiques pour aujourd'hui ({self.today}).")
         with self._db_lock: 
-            self._cursor.execute('''
-                UPDATE daily_stats
-                SET distance_pixels = 0.0, left_clicks = 0, right_clicks = 0, middle_clicks = 0,
-                    active_time_seconds = 0, inactive_time_seconds = 0
-                WHERE date = ?
-            ''', (self.today,))
-            self._conn.commit()
-            # Reset in-memory stats to reflect database changes
-            self._current_day_stats_in_memory = self._get_initial_daily_stats_structure()
+            if not self._cursor or not self._conn:
+                self.logger.error("Impossible de réinitialiser les stats du jour: curseur ou connexion non initialisé.")
+                return
+            try:
+                self._cursor.execute('''
+                    UPDATE daily_stats
+                    SET distance_pixels = 0.0, left_clicks = 0, right_clicks = 0, middle_clicks = 0,
+                        active_time_seconds = 0, inactive_time_seconds = 0
+                    WHERE date = ?
+                ''', (self.today,))
+                self._conn.commit()
+                self._current_day_stats_in_memory = self._get_initial_daily_stats_structure()
+                self.logger.info(f"Statistiques pour {self.today} réinitialisées avec succès.")
+            except sqlite3.Error as e:
+                self.logger.error(f"Erreur SQLite lors de la réinitialisation des stats du jour: {e}", exc_info=True)
+
 
     def reset_global_stats(self):
-        """Resets all historical statistics in the database and re-initializes app settings."""
+        """Réinitialise toutes les statistiques historiques dans la base de données et réinitialise les paramètres de l'application."""
+        self.logger.warning("Demande de réinitialisation GLOBALE de toutes les statistiques et paramètres.")
         with self._db_lock: 
-            self._cursor.execute("DELETE FROM daily_stats")
-            self._cursor.execute("DELETE FROM app_settings WHERE key = 'first_launch_date'")
-            
-            self._initialize_app_settings() # Re-create first_launch_date for the fresh start
+            if not self._cursor or not self._conn:
+                self.logger.error("Impossible de réinitialiser les stats globales: curseur ou connexion non initialisé.")
+                return
+            try:
+                self.logger.debug("Suppression des données de 'daily_stats'.")
+                self._cursor.execute("DELETE FROM daily_stats")
+                self.logger.debug("Suppression de 'first_launch_date' de 'app_settings'.")
+                self._cursor.execute("DELETE FROM app_settings WHERE key = 'first_launch_date'")
+                
+                self._conn.commit() 
+                
+                self.logger.info("Réinitialisation des paramètres de l'application (first_launch_date).")
+                self._initialize_app_settings() 
 
-            self._conn.commit()
-            # Reset in-memory stats as history is cleared
-            self._current_day_stats_in_memory = self._get_initial_daily_stats_structure()
+                self._current_day_stats_in_memory = self._get_initial_daily_stats_structure()
+                self.logger.warning("Toutes les statistiques historiques ont été réinitialisées.")
+            except sqlite3.Error as e:
+                self.logger.error(f"Erreur SQLite lors de la réinitialisation des stats globales: {e}", exc_info=True)
+
 
     def save_changes(self):
-        """Saves current in-memory statistics for the day to the database."""
+        """Sauvegarde les statistiques en mémoire du jour courant dans la base de données."""
         self._update_todays_entry_in_db() 
         with self._db_lock: 
-            if self._conn: # Ensure connection is still active
-                self._conn.commit()
+            if self._conn:
+                try:
+                    self._conn.commit()
+                except sqlite3.Error as e:
+                    self.logger.error(f"Erreur SQLite lors du commit dans save_changes: {e}", exc_info=True)
+            else:
+                self.logger.warning("Impossible de sauvegarder les changements: connexion à la BDD non active.")
+
 
     def close(self):
         """
-        Signals the activity tracker thread to stop, waits for it,
-        saves any pending changes, and closes the database connection.
+        Signale l'arrêt du thread de suivi d'activité, attend sa terminaison,
+        sauvegarde les changements en attente et ferme la connexion à la base de données.
         """
-        self._stop_tracker = True # Signal the thread to stop
-        if self._activity_tracker_thread.is_alive():
-            print("Waiting for activity tracker thread to terminate...") # Keep this for crucial shutdown info
-            self._activity_tracker_thread.join(timeout=2.0) # Wait for thread to finish (with timeout)
+        self.logger.info("Demande de fermeture de StatsManager.")
+        self._stop_tracker = True 
+        if self._activity_tracker_thread and self._activity_tracker_thread.is_alive():
+            self.logger.info("Attente de la terminaison du thread de suivi d'activité...") 
+            self._activity_tracker_thread.join(timeout=2.0) 
+            if self._activity_tracker_thread.is_alive():
+                self.logger.warning("Le thread de suivi d'activité n'a pas terminé dans le délai imparti.")
+            else:
+                self.logger.info("Thread de suivi d'activité terminé.")
         
+        self.logger.info("Sauvegarde finale des changements avant fermeture.")
         self.save_changes() 
         with self._db_lock: 
             if self._conn:
-                self._conn.close()
-                self._conn = None
-                self._cursor = None
+                self.logger.info("Fermeture de la connexion à la base de données.")
+                try:
+                    self._conn.close()
+                    self.logger.info("Connexion à la base de données fermée.")
+                except sqlite3.Error as e:
+                    self.logger.error(f"Erreur SQLite lors de la fermeture de la connexion: {e}", exc_info=True)
+                finally: 
+                    self._conn = None
+                    self._cursor = None
+        self.logger.info("StatsManager fermé.")
+
 
     def _get_initial_daily_stats_structure(self) -> dict:
-        """Returns a dictionary representing the initial state of daily statistics."""
+        """Retourne un dictionnaire représentant l'état initial des statistiques journalières."""
         return {
-            'date': self.today,
+            'date': self.today, 
             'distance_pixels': 0.0,
             'left_clicks': 0,
             'right_clicks': 0,
             'middle_clicks': 0,
             'active_time_seconds': 0,
             'inactive_time_seconds': 0
+        }
+
+    def _get_empty_global_stats_structure(self) -> dict:
+        """Retourne une structure vide pour les statistiques globales en cas d'erreur."""
+        return {
+            'total_distance_pixels': 0.0, 'left_clicks': 0, 'right_clicks': 0, 
+            'middle_clicks': 0, 'total_active_time_seconds': 0, 'total_inactive_time_seconds': 0
         }
