@@ -1,4 +1,4 @@
-début Gemini 2.5 Pro et le Gem dédié
+test
 
 OK main.py : implémantation du logging
 
