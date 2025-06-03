@@ -206,6 +206,11 @@ if __name__ == "__main__":
     main_logger = logging.getLogger(__name__)
     main_logger.info("Démarrage application Mouse Tracker (__main__).")
 
+    # ----- REDUIRE la verbosité de gui.main_window et de managers.stats_manager -----
+    logging.getLogger('gui.main_window').setLevel(logging.INFO)
+    logging.getLogger('managers.stats_manager').setLevel(logging.INFO)
+    # ---------------------------------------------------------------------------------
+
     script_dir = os.path.dirname(os.path.abspath(__file__))
     icon_path_main = os.path.join(script_dir, 'assets', 'icons', 'systray_icon.ico')
 
