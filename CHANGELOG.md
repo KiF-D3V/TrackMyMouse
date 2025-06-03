@@ -2,7 +2,8 @@
 
 Toutes les modifications notables apportées à ce projet seront documentées dans ce fichier.
 
-## [0.1.0] - 2025-06-03 Première version de développement. Cette version pose les fondations de TrackMyMouse avec les premières fonctionnalités et corrections.
+## [0.1.0] - 2025-06-03 
+Première version de développement. Cette version pose les fondations de TrackMyMouse avec les premières fonctionnalités et corrections.
 
 ### Ajouté (Added)
 - Système de journalisation (logs) pour suivre le fonctionnement de l'application.
