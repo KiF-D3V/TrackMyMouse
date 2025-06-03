@@ -1,6 +1,6 @@
 {
     "_GENERAL": "Clés générales de l'application et messages globaux",
-    "app_title": "Traqueur de Souris",
+    "app_title": "TrackMyMouse",
     "info_title": "Information",
     "error_title": "Erreur",
     "config_saved_title": "Configuration enregistrée",
@@ -66,7 +66,7 @@
     "calculated_dpi_label": "DPI Calculé :",
 
     "_FIRST_LAUNCH_DIALOG": "Textes du dialogue de premier lancement",
-    "welcome_message": "Bienvenue sur Traqueur de Souris !",
+    "welcome_message": "Bienvenue sur TrackMyMouse !",
     "first_launch_prompt": "Pour suivre précisément la distance de votre souris, veuillez fournir les dimensions physiques de votre écran.",
     "first_launch_dialog_title": "Configuration Initiale",
     "validate_button": "Valider",
