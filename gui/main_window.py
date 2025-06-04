@@ -9,6 +9,7 @@ import logging
 # Importe les onglets
 from gui import settings_tab
 from gui import about_tab
+from gui import history_tab # <--- AJOUT: Import du nouvel onglet Historique
 
 # Imports de configuration et utilitaires
 from config.version import __version__
@@ -40,11 +41,20 @@ class MainWindow(ttk.Frame):
 
         self.notebook = ttk.Notebook(self)
 
+        # Instanciation des onglets
         self.today_tab = ttk.Frame(self.notebook)
+        self.history_tab = history_tab.HistoryTab(self.notebook) # <--- AJOUT: Instanciation de HistoryTab
         self.settings_tab = settings_tab.SettingsTab(self.notebook) 
         self.about_tab = about_tab.AboutTab(self.notebook)
 
+        # Ajout des onglets au notebook dans l'ordre souhaité
+        # Today (index 0) -> History (index 1) -> Settings (index 2) -> About (index 3)
         self.notebook.add(self.today_tab, text=self.language_manager.get_text('today_tab_title', 'Today'))
+        self.notebook.add(self.history_tab, text=self.language_manager.get_text('history_tab_title', 'History')) # <--- AJOUT: Ajout de l'onglet History
+        # Prévoir la clé 'history_tab_title' dans vos fichiers de langue (fr.json, en.json)
+        # Exemple pour en.json: "history_tab_title": "History",
+        # Exemple pour fr.json: "history_tab_title": "Historique",
+        
         self.notebook.add(self.settings_tab, text=self.language_manager.get_text('settings_tab_title', 'Settings'))
         self.notebook.add(self.about_tab, text=self.language_manager.get_text('about_tab_title', 'About'))
 
@@ -68,11 +78,17 @@ class MainWindow(ttk.Frame):
             lang = self.preference_manager.get_language() 
             self.language_manager.set_language(lang)
 
+            # Mise à jour des textes des onglets et du titre de la fenêtre
+            # Les index des onglets sont maintenant: 0:Today, 1:History, 2:Settings, 3:About
             self.notebook.tab(0, text=self.language_manager.get_text('today_tab_title', 'Today'))
-            self.notebook.tab(1, text=self.language_manager.get_text('settings_tab_title', 'Settings'))
-            self.notebook.tab(2, text=self.language_manager.get_text('about_tab_title', 'About'))
+            self.notebook.tab(1, text=self.language_manager.get_text('history_tab_title', 'History')) 
+            self.notebook.tab(2, text=self.language_manager.get_text('settings_tab_title', 'Settings')) 
+            self.notebook.tab(3, text=self.language_manager.get_text('about_tab_title', 'About'))      
             self.master.title(f"{self.language_manager.get_text('app_title', 'Mouse Tracker')} v{__version__}")
             
+            # Mise à jour des textes dans les onglets enfants
+            if hasattr(self.history_tab, 'update_language'): 
+                self.history_tab.update_language()         
             if hasattr(self.settings_tab, 'update_widget_texts'):
                 self.settings_tab.update_widget_texts()
             if hasattr(self.about_tab, 'update_widget_texts'):
@@ -123,7 +139,6 @@ class MainWindow(ttk.Frame):
         formatted_dist, unit = format_distance(distance_pixels, dpi, distance_unit, current_language)
         distance_text = f"{self.language_manager.get_text('todays_distance_label', 'Distance Today:')} {formatted_dist} {unit} ({int(distance_pixels)} pixels)"
 
-        # Ordre des clics: Gauche | Milieu | Droite
         clicks_text = (
             f"{self.language_manager.get_text('todays_clicks_label', 'Clicks Today:')} "
             f"{self.language_manager.get_text('clicks_left_short', 'L')}: {todays_stats.get('left_clicks', 0)} | "
@@ -151,7 +166,6 @@ class MainWindow(ttk.Frame):
         formatted_dist, unit = format_distance(total_distance_pixels, dpi, distance_unit, current_language)
         distance_text = f"{self.language_manager.get_text('global_distance_label', 'Total Distance:')} {formatted_dist} {unit} ({int(total_distance_pixels)} pixels)"
 
-        # Ordre des clics: Gauche | Milieu | Droite
         clicks_text = (
             f"{self.language_manager.get_text('global_clicks_label', 'Total Clicks:')} "
             f"{self.language_manager.get_text('clicks_left_short', 'L')}: {global_stats.get('left_clicks', 0)} | "
@@ -179,17 +193,15 @@ class MainWindow(ttk.Frame):
             return self.language_manager.get_text('unknown_date', "Date inconnue")
         try:
             date_obj = datetime.datetime.fromisoformat(date_iso)
-            # Si la langue est française, utiliser le format JJ/MM/AAAA HH:MM:SS
             if current_language == 'fr':
                 self.logger.debug(f"Formatage de la date pour 'fr': {date_obj.strftime('%d/%m/%Y %H:%M:%S')}")
                 return date_obj.strftime('%d/%m/%Y %H:%M:%S')
-            # Sinon, utiliser le format défini dans les préférences utilisateur
             else:
                 self.logger.debug(f"Formatage de la date avec le format des préférences '{date_format_pref}': {date_obj.strftime(date_format_pref)}")
                 return date_obj.strftime(date_format_pref)
         except ValueError as ve:
             self.logger.error(f"Format de date ISO ('{date_iso}') ou format de préférence ('{date_format_pref}') invalide: {ve}", exc_info=True)
-            return date_iso # Retourne la date brute en cas d'erreur de formatage
+            return date_iso 
 
     def update_stats_display(self):
         """
@@ -198,7 +210,7 @@ class MainWindow(ttk.Frame):
         try:
             todays_stats = self.stats_manager.get_todays_stats()
             global_stats = self.stats_manager.get_global_stats()
-            first_launch_date_iso = self.stats_manager.get_first_launch_date() # Devrait être AAAA-MM-JJTHH:MM:SS
+            first_launch_date_iso = self.stats_manager.get_first_launch_date() 
             
             current_language = self.language_manager.get_current_language()
             dpi = self.preference_manager.get_dpi()

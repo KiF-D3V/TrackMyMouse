@@ -6,8 +6,8 @@ import os
 import time
 import threading 
 import logging 
-from pynput import mouse
-from typing import Optional
+from pynput import mouse # type: ignore # Ajout de type: ignore pour pynput si non reconnu par l'IDE
+from typing import Optional, List, Dict, Any # Ajout de List, Dict, Any pour le typage
 
 from config.preference_manager import PreferenceManager
 from utils.service_locator import service_locator
@@ -293,7 +293,7 @@ class StatsManager:
 
     def get_todays_stats(self) -> dict:
         """Retourne les statistiques du jour courant depuis la mémoire."""
-        return self._current_day_stats_in_memory # CORRIGÉ ICI
+        return self._current_day_stats_in_memory
 
 
     def get_global_stats(self) -> dict:
@@ -350,6 +350,46 @@ class StatsManager:
                 self.logger.error(f"Erreur SQLite dans get_first_launch_date: {e}", exc_info=True)
                 return None
 
+    # --- NOUVELLE MÉTHODE POUR L'HISTORIQUE ---
+    def get_last_n_days_stats(self, num_days: int) -> List[Dict[str, Any]]:
+        """
+        Récupère les statistiques complètes pour les `num_days` jours les plus récents
+        ayant des entrées dans la table `daily_stats`.
+
+        Args:
+            num_days: Le nombre de jours d'historique à récupérer.
+
+        Returns:
+            Une liste de dictionnaires, chaque dictionnaire représentant les statistiques d'un jour.
+            La liste est triée de la date la plus récente à la plus ancienne.
+            Retourne une liste vide en cas d'erreur ou si aucune donnée n'est trouvée.
+        """
+        self.logger.info(f"Demande de récupération des statistiques des {num_days} derniers jours.")
+        if not self._cursor:
+            self.logger.error("Impossible de récupérer l'historique: curseur non initialisé.")
+            return []
+        if num_days <= 0:
+            self.logger.warning("num_days doit être positif pour get_last_n_days_stats.")
+            return []
+
+        query = """
+            SELECT date, distance_pixels, left_clicks, right_clicks, middle_clicks, 
+                   active_time_seconds, inactive_time_seconds
+            FROM daily_stats
+            ORDER BY date DESC
+            LIMIT ?
+        """
+        with self._db_lock:
+            try:
+                self._cursor.execute(query, (num_days,))
+                rows = self._cursor.fetchall()
+                self.logger.debug(f"{len(rows)} lignes récupérées pour les {num_days} derniers jours.")
+                # Convertir les objets sqlite3.Row en dictionnaires standards
+                return [dict(row) for row in rows]
+            except sqlite3.Error as e:
+                self.logger.error(f"Erreur SQLite dans get_last_n_days_stats: {e}", exc_info=True)
+                return []
+    # --- FIN DE LA NOUVELLE MÉTHODE ---
 
     def reset_todays_stats(self):
         """Réinitialise toutes les statistiques du jour courant à zéro."""
