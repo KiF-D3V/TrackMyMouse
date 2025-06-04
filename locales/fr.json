@@ -77,5 +77,23 @@
     
     "_ABOUT_TAB": "Informations sur l'application (onglet À propos)",
     "about_text": "À propos de cette application...",
-    "version_label": "Version :"
+    "version_label": "Version :",
+
+    "_HISTORY_TAB": "Textes de l'onglet Historique",
+    "history_tab_title": "Historique",
+    "history_last_n_days_title": "Historique des derniers jours",
+    "history_show_days_label": "Afficher :",
+    "history_7_days": "7 jours",
+    "history_14_days": "14 jours",
+    "history_30_days": "30 jours",
+    "history_col_date": "Date",
+    "history_col_distance": "Distance",
+    "history_col_clicks_left": "Gauche",
+    "history_col_clicks_middle": "Milieu",
+    "history_col_clicks_right": "Droit",
+    "history_col_active": "Actif",
+    "history_col_inactive": "Inactif",
+    "history_no_data": "Aucune donnée disponible",
+    "history_load_error": "Erreur de chargement des données"
+
 }

@@ -77,5 +77,23 @@
     
     "_ABOUT_TAB": "About app information (About tab)",
     "about_text": "About this application...",
-    "version_label": "Version:"
+    "version_label": "Version:",
+
+    "_HISTORY_TAB": "History Tab Texts",
+    "history_tab_title": "History",
+    "history_last_n_days_title": "Last Days History",
+    "history_show_days_label": "Show:",
+    "history_7_days": "7 days",
+    "history_14_days": "14 days",
+    "history_30_days": "30 days",
+    "history_col_date": "Date",
+    "history_col_distance": "Distance",
+    "history_col_clicks_left": "Left",
+    "history_col_clicks_middle": "Middle",
+    "history_col_clicks_right": "Right",
+    "history_col_active": "Active",
+    "history_col_inactive": "Inactive",
+    "history_no_data": "No data available",
+    "history_load_error": "Error loading data"
+
 }
