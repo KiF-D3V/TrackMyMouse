@@ -2,12 +2,23 @@
 
 Toutes les modifications notables apportées à ce projet seront documentées dans ce fichier.
 
+## [0.2.0] - 2025-06-04
+
+### Ajouté (Added)
+- Nouvel onglet "Historique" avec affichage des N derniers jours de statistiques (période sélectionnable, section affichable/masquable).
+- Choix de la langue de l'application dès le dialogue de premier lancement.
+
+### Modifié (Changed)
+- Précision de la date (Heure:Minute:Seconde) unifiée entre les préférences utilisateurs, et la date de lancement.
+- Ajustement des largeurs de colonnes dans le tableau de l'onglet Historique.
+
+
 ## [0.1.0] - 2025-06-03 
 Première version de développement. Cette version pose les fondations de TrackMyMouse avec les premières fonctionnalités et corrections.
 
 ### Ajouté (Added)
 - Système de journalisation (logs) pour suivre le fonctionnement de l'application.
-- Gestionnaire dédié pour l'icône de l'application dans la barre système (`SystrayManager`).
+- Gestionnaire dédié pour l'icône de l'application dans la barre système.
 - Logger intégré dans `StatsManager` pour un meilleur suivi des opérations de données.
 
 ### Modifié (Changed)

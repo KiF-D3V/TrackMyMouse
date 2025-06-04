@@ -11,8 +11,9 @@ L'application enregistre ces données discrètement en arrière-plan et vous per
 * **Suivi de la distance parcourue** : Calcule la distance totale que votre souris a parcourue sur l'écran.
 * **Comptage détaillé des clics** : Enregistre le nombre clics effectués avec le bouton gauche, le bouton droit et le bouton du milieu de la souris.
 * **Analyse du temps d'activité/inactivité** : Mesure le temps pendant lequel la souris est active (en mouvement ou clics récents) et le temps d'inactivité.
-* **Statistiques journalières et cumulées** :
+* **Statistiques** :
     * Consultez vos statistiques pour la journée en cours.
+    * Consultation de l'historique des statistiques journalières (N derniers jours).
     * Accédez au total général de votre activité depuis la première utilisation de l'application.
 * **Interface utilisateur claire** : Une fenêtre simple d'utilisation pour visualiser vos données et configurer les paramètres.
 * **Options de personnalisation** :
