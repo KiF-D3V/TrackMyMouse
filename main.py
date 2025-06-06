@@ -5,6 +5,7 @@ from tkinter import messagebox, PhotoImage
 import os
 import sys
 import logging
+from typing import Optional
 
 # --- MODIFIÉ : Import des nouvelles fonctions de gestion de chemin ---
 from utils.paths import get_icon_path 
