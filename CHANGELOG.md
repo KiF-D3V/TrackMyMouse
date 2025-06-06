@@ -2,6 +2,12 @@
 
 Toutes les modifications notables apportées à ce projet seront documentées dans ce fichier.
 
+## [0.3.0] - 2025-06-06
+
+### Modifié (Changed)
+- Amélioration majeure de la structure des dossiers du projet pour une meilleure organisation et maintenabilité.
+
+
 ## [0.2.0] - 2025-06-04
 
 ### Ajouté (Added)
