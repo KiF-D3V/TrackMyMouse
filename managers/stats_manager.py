@@ -6,15 +6,20 @@ import os
 import time
 import threading 
 import logging 
-from pynput import mouse # type: ignore # Ajout de type: ignore pour pynput si non reconnu par l'IDE
-from typing import Optional, List, Dict, Any # Ajout de List, Dict, Any pour le typage
+from pynput import mouse # type: ignore
+from typing import Optional, List, Dict, Any 
+import appdirs # <--- AJOUT: Import de la bibliothèque appdirs
 
 from config.preference_manager import PreferenceManager
 from utils.service_locator import service_locator
 
 
 # --- Constants ---
-DB_FILE = 'data/stats.db'
+# La constante DB_FILE définira maintenant uniquement le nom du fichier de base de données.
+# Le chemin complet sera construit dans __init__ en utilisant appdirs.
+DB_FILENAME = "stats.db" 
+APP_NAME_FOR_DIRS = "TrackMyMouse" # Utilisé par appdirs
+
 INACTIVITY_THRESHOLD_SECONDS = 2 
 
 class StatsManager:
@@ -33,6 +38,13 @@ class StatsManager:
         self._cursor: Optional[sqlite3.Cursor] = None
         self._db_lock = threading.Lock() 
         
+        # --- MODIFIÉ : Détermination du chemin de la base de données avec appdirs ---
+        # Obtenir le dossier de données spécifique à l'utilisateur pour cette application
+        self.app_data_dir = appdirs.user_data_dir(APP_NAME_FOR_DIRS)
+        # Construire le chemin complet vers le fichier de base de données
+        self.db_full_path = os.path.join(self.app_data_dir, DB_FILENAME)
+        # --- FIN DE LA MODIFICATION ---
+        
         self.today = datetime.date.today().isoformat()
         self.last_mouse_position: Optional[tuple[int, int]] = None
         self.last_activity_time: float = time.time()
@@ -50,25 +62,37 @@ class StatsManager:
 
     def _connect_db(self):
         """Établit la connexion à la base de données SQLite et crée les tables si elles n'existent pas."""
-        self.logger.info(f"Connexion à la base de données: {DB_FILE}")
+        # Utilise maintenant self.db_full_path défini dans __init__
+        self.logger.info(f"Tentative de connexion à la base de données : {self.db_full_path}")
         try:
-            os.makedirs(os.path.dirname(DB_FILE), exist_ok=True)
-            self._conn = sqlite3.connect(DB_FILE, check_same_thread=False) 
+            # --- MODIFIÉ : Création du dossier de données utilisateur si nécessaire ---
+            # S'assurer que le dossier de données utilisateur (retourné par appdirs) existe
+            if not os.path.exists(self.app_data_dir):
+                os.makedirs(self.app_data_dir, exist_ok=True)
+                self.logger.info(f"Dossier de données créé : {self.app_data_dir}")
+            # --- FIN DE LA MODIFICATION ---
+
+            self._conn = sqlite3.connect(self.db_full_path, check_same_thread=False) 
             if self._conn: 
                 self._conn.row_factory = sqlite3.Row 
                 self._cursor = self._conn.cursor()
                 with self._db_lock: 
                     self._create_tables()
-                self.logger.info("Connexion à la base de données établie et tables vérifiées/créées.")
+                self.logger.info(f"Connexion à la base de données établie ({self.db_full_path}) et tables vérifiées/créées.")
             else:
                 self.logger.critical("Échec de l'établissement de la connexion à la base de données, _conn est None.")
         except sqlite3.Error as e:
-            self.logger.critical(f"Erreur SQLite lors de la connexion ou de la création des tables: {e}", exc_info=True)
+            self.logger.critical(f"Erreur SQLite lors de la connexion ou de la création des tables pour '{self.db_full_path}': {e}", exc_info=True)
             raise 
-        except OSError as e:
-            self.logger.critical(f"Erreur OS lors de la création du répertoire pour la base de données: {e}", exc_info=True)
+        except OSError as e: 
+            self.logger.critical(f"Erreur OS (ex: lors de la création du répertoire '{self.app_data_dir}'): {e}", exc_info=True)
             raise
 
+    # Le reste du fichier (méthodes _create_tables, _initialize_app_settings, etc.)
+    # reste identique à la version que vous m'avez fournie (celle du Tour 36),
+    # car ces méthodes utilisent self._conn et self._cursor qui sont maintenant initialisés
+    # avec la base de données au nouvel emplacement.
+    # J'inclus tout le reste pour que vous ayez le fichier complet.
 
     def _create_tables(self):
         """Crée les tables nécessaires (daily_stats et app_settings) si elles n'existent pas."""
@@ -320,7 +344,8 @@ class StatsManager:
                     FROM daily_stats
                 ''')
                 row = self._cursor.fetchone()
-                self.logger.debug(f"Stats globales brutes récupérées de la BDD: {dict(row) if row else 'None'}")
+                log_row_data = dict(row) if row and all(k in row.keys() for k in row.keys()) else 'None ou données partielles'
+                self.logger.debug(f"Stats globales brutes récupérées de la BDD: {log_row_data}")
                 
                 return {
                     'total_distance_pixels': row['total_distance_pixels'] if row and row['total_distance_pixels'] is not None else 0.0,
@@ -350,7 +375,6 @@ class StatsManager:
                 self.logger.error(f"Erreur SQLite dans get_first_launch_date: {e}", exc_info=True)
                 return None
 
-    # --- NOUVELLE MÉTHODE POUR L'HISTORIQUE ---
     def get_last_n_days_stats(self, num_days: int) -> List[Dict[str, Any]]:
         """
         Récupère les statistiques complètes pour les `num_days` jours les plus récents
@@ -372,6 +396,8 @@ class StatsManager:
             self.logger.warning("num_days doit être positif pour get_last_n_days_stats.")
             return []
 
+        self.save_changes()
+
         query = """
             SELECT date, distance_pixels, left_clicks, right_clicks, middle_clicks, 
                    active_time_seconds, inactive_time_seconds
@@ -384,12 +410,10 @@ class StatsManager:
                 self._cursor.execute(query, (num_days,))
                 rows = self._cursor.fetchall()
                 self.logger.debug(f"{len(rows)} lignes récupérées pour les {num_days} derniers jours.")
-                # Convertir les objets sqlite3.Row en dictionnaires standards
-                return [dict(row) for row in rows]
+                return [dict(row_item) for row_item in rows] 
             except sqlite3.Error as e:
                 self.logger.error(f"Erreur SQLite dans get_last_n_days_stats: {e}", exc_info=True)
                 return []
-    # --- FIN DE LA NOUVELLE MÉTHODE ---
 
     def reset_todays_stats(self):
         """Réinitialise toutes les statistiques du jour courant à zéro."""
