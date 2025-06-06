@@ -14,7 +14,7 @@ from utils.paths import get_icon_path
 from utils.service_locator import service_locator
 from managers.language_manager import LanguageManager
 from managers.stats_manager import StatsManager
-from config.preference_manager import PreferenceManager
+from managers.preference_manager import PreferenceManager
 from managers.input_manager import InputManager
 from managers.systray_manager import SystrayManager
 

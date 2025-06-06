@@ -1,6 +1,6 @@
 # utils/service_locator.py
 
-from config.preference_manager import PreferenceManager # Import du nouveau gestionnaire de préférences
+from managers.preference_manager import PreferenceManager # Import du nouveau gestionnaire de préférences
 
 class ServiceLocator:
     _instance = None

@@ -11,7 +11,7 @@ from typing import Optional, List, Dict, Any
 
 # --- MODIFIÉ : Remplacement des imports liés au chemin ---
 # L'import d'appdirs n'est plus nécessaire ici.
-from config.preference_manager import PreferenceManager
+from managers.preference_manager import PreferenceManager
 from utils.service_locator import service_locator
 # AJOUT : Import de la nouvelle fonction de gestion de chemin
 from utils.paths import get_db_path

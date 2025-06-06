@@ -12,7 +12,7 @@ from gui import about_tab
 from gui import history_tab # <--- AJOUT: Import du nouvel onglet Historique
 
 # Imports de configuration et utilitaires
-from config.version import __version__
+from version import __version__
 from utils.unit_converter import format_distance, format_seconds_to_hms 
 
 # Service Locator pour accéder aux managers

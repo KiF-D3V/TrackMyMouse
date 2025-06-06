@@ -6,7 +6,7 @@ from tkinter import ttk
 # Importe le Service Locator pour accéder aux managers
 from utils.service_locator import service_locator
 # Importe la version de l'application
-from config.version import __version__
+from version import __version__
 
 
 class AboutTab(ttk.Frame):
