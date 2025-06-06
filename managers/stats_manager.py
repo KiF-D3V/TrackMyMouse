@@ -8,18 +8,17 @@ import threading
 import logging 
 from pynput import mouse # type: ignore
 from typing import Optional, List, Dict, Any 
-import appdirs # <--- AJOUT: Import de la bibliothèque appdirs
 
+# --- MODIFIÉ : Remplacement des imports liés au chemin ---
+# L'import d'appdirs n'est plus nécessaire ici.
 from config.preference_manager import PreferenceManager
 from utils.service_locator import service_locator
-
+# AJOUT : Import de la nouvelle fonction de gestion de chemin
+from utils.paths import get_db_path
 
 # --- Constants ---
-# La constante DB_FILE définira maintenant uniquement le nom du fichier de base de données.
-# Le chemin complet sera construit dans __init__ en utilisant appdirs.
-DB_FILENAME = "stats.db" 
-APP_NAME_FOR_DIRS = "TrackMyMouse" # Utilisé par appdirs
-
+# La logique pour DB_FILENAME et APP_NAME_FOR_DIRS est maintenant dans utils/paths.py
+# On conserve uniquement les constantes propres à ce manager.
 INACTIVITY_THRESHOLD_SECONDS = 2 
 
 class StatsManager:
@@ -38,11 +37,8 @@ class StatsManager:
         self._cursor: Optional[sqlite3.Cursor] = None
         self._db_lock = threading.Lock() 
         
-        # --- MODIFIÉ : Détermination du chemin de la base de données avec appdirs ---
-        # Obtenir le dossier de données spécifique à l'utilisateur pour cette application
-        self.app_data_dir = appdirs.user_data_dir(APP_NAME_FOR_DIRS)
-        # Construire le chemin complet vers le fichier de base de données
-        self.db_full_path = os.path.join(self.app_data_dir, DB_FILENAME)
+        # --- MODIFIÉ : Utilisation de la fonction centralisée pour obtenir le chemin de la BDD ---
+        self.db_full_path = get_db_path()
         # --- FIN DE LA MODIFICATION ---
         
         self.today = datetime.date.today().isoformat()
@@ -62,16 +58,10 @@ class StatsManager:
 
     def _connect_db(self):
         """Établit la connexion à la base de données SQLite et crée les tables si elles n'existent pas."""
-        # Utilise maintenant self.db_full_path défini dans __init__
         self.logger.info(f"Tentative de connexion à la base de données : {self.db_full_path}")
         try:
-            # --- MODIFIÉ : Création du dossier de données utilisateur si nécessaire ---
-            # S'assurer que le dossier de données utilisateur (retourné par appdirs) existe
-            if not os.path.exists(self.app_data_dir):
-                os.makedirs(self.app_data_dir, exist_ok=True)
-                self.logger.info(f"Dossier de données créé : {self.app_data_dir}")
-            # --- FIN DE LA MODIFICATION ---
-
+            # La création du dossier est gérée par get_db_path() dans utils/paths.py,
+            # donc plus besoin de os.makedirs ici.
             self._conn = sqlite3.connect(self.db_full_path, check_same_thread=False) 
             if self._conn: 
                 self._conn.row_factory = sqlite3.Row 
@@ -85,8 +75,12 @@ class StatsManager:
             self.logger.critical(f"Erreur SQLite lors de la connexion ou de la création des tables pour '{self.db_full_path}': {e}", exc_info=True)
             raise 
         except OSError as e: 
-            self.logger.critical(f"Erreur OS (ex: lors de la création du répertoire '{self.app_data_dir}'): {e}", exc_info=True)
+            self.logger.critical(f"Erreur OS lors de la tentative de connexion à '{self.db_full_path}': {e}", exc_info=True)
             raise
+
+    # ... [ TOUT LE RESTE DU FICHIER RESTE INCHANGÉ ] ...
+    # Collez ici la suite de votre fichier, à partir de la méthode _create_tables()
+    # jusqu'à la fin.
 
     # Le reste du fichier (méthodes _create_tables, _initialize_app_settings, etc.)
     # reste identique à la version que vous m'avez fournie (celle du Tour 36),

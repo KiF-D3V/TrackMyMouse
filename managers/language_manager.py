@@ -2,34 +2,12 @@
 
 import json
 import os
-import sys # Nécessaire pour la fonction resource_path
-import logging # Ajout pour le logging
+import sys 
+import logging
 from utils.service_locator import service_locator
 
-# --- COPIE TEMPORAIRE de la fonction resource_path ---
-# Idéalement, cette fonction serait dans un module utilitaire partagé (ex: utils.paths)
-# et importée ici. Pour l'instant, nous la dupliquons pour avancer sur le packaging.
-def resource_path(relative_path: str) -> str:
-    """
-    Obtient le chemin absolu vers une ressource, fonctionne pour le développement
-    et pour les exécutables créés par PyInstaller.
-    """
-    try:
-        # PyInstaller crée un dossier temporaire et stocke son chemin dans _MEIPASS
-        base_path = sys._MEIPASS # type: ignore
-    except Exception:
-        # En développement, _MEIPASS n'est pas défini.
-        # On suppose que ce manager est dans un sous-dossier (ex: 'managers')
-        # et que les ressources (ex: 'locales') sont à la racine du projet.
-        # Chemin du script actuel -> remonter d'un niveau pour être à la racine du projet.
-        base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-        # Si LanguageManager.py était à la racine, ce serait os.path.abspath(".")
-        # comme dans main.py. Ajustez si la structure de vos ressources est différente.
-        # Pour que resource_path('locales') fonctionne, 'locales' doit être
-        # un sous-dossier de base_path.
-
-    return os.path.join(base_path, relative_path)
-# --- FIN DE LA COPIE TEMPORAIRE ---
+# --- MODIFIÉ : Remplacement de la fonction locale par un import ---
+from utils.paths import get_locales_path # On importe directement la fonction qui donne le bon chemin
 
 class LanguageManager:
     _instance = None
@@ -42,7 +20,7 @@ class LanguageManager:
 
     def __init__(self):
         if not self._initialized:
-            self.logger = logging.getLogger(__name__) # Ajout du logger
+            self.logger = logging.getLogger(__name__) 
             self.logger.info("Initialisation de LanguageManager...")
             self.languages = {}
             self.current_language = 'en' 
@@ -53,16 +31,12 @@ class LanguageManager:
 
     def _load_languages(self):
         self.logger.debug("Chargement des fichiers de langue...")
-        # --- MODIFIÉ : Utilisation de resource_path ---
-        # L'ancien calcul de lang_dir basé sur script_dir est remplacé.
-        # 'locales' est supposé être un dossier à la racine du projet
-        # (ou à la racine de ce que PyInstaller considère comme le dossier de base).
-        lang_dir = resource_path('locales')
-        self.logger.debug(f"Chemin du dossier des langues déterminé par resource_path: {lang_dir}")
+        # --- MODIFIÉ : Utilisation de la nouvelle fonction importée ---
+        lang_dir = get_locales_path()
+        self.logger.debug(f"Chemin du dossier des langues obtenu depuis utils.paths: {lang_dir}")
         # --- FIN DE LA MODIFICATION ---
 
-        if not os.path.exists(lang_dir) or not os.path.isdir(lang_dir): # Vérifier aussi si c'est un dossier
-            # Remplacer print par un log d'erreur
+        if not os.path.exists(lang_dir) or not os.path.isdir(lang_dir):
             self.logger.error(f"Le répertoire des langues est introuvable ou n'est pas un dossier à {lang_dir}")
             return
 
@@ -95,17 +69,14 @@ class LanguageManager:
             else:
                 self.logger.debug(f"Langue déjà définie à: {lang_code}, pas de changement.")
         else:
-            # Remplacer print par un log d'avertissement
             self.logger.warning(f"Langue '{lang_code}' non disponible. La langue par défaut '{self.current_language}' sera utilisée.")
 
     def get_text(self, key: str, default_text: str = "") -> str:
         text = self.languages.get(self.current_language, {}).get(key)
         if text is None:
-            # Fallback to English if key not found in current language
-            original_default_text = default_text # Garder une trace si le fallback anglais échoue aussi
+            original_default_text = default_text
             text = self.languages.get('en', {}).get(key, default_text)
-            if text == original_default_text and key not in self.languages.get('en', {}): # Si toujours le défaut et non trouvé en anglais
-                # Remplacer print par un log d'avertissement
+            if text == original_default_text and key not in self.languages.get('en', {}):
                 self.logger.warning(f"Clé de texte '{key}' non trouvée dans la langue actuelle ({self.current_language}) ni en anglais. Utilisation du texte par défaut.")
         return text
 
@@ -118,6 +89,6 @@ class LanguageManager:
         aux noms d'affichage (Français, English).
         """
         return {
-            code: self.get_text(f'language_{code}', code.upper()) # Mettre un fallback plus visible
+            code: self.get_text(f'language_{code}', code.upper()) 
             for code in self.languages.keys()
         }

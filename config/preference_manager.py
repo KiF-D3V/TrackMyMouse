@@ -5,19 +5,20 @@ import os
 import screeninfo 
 import datetime
 from typing import Optional
-import appdirs # <--- AJOUT: Import de la bibliothèque appdirs
+
+# L'import d'appdirs n'est plus nécessaire ici.
+# import appdirs 
+
+# --- AJOUT : Import de la nouvelle fonction de gestion de chemin depuis utils.paths ---
+from utils.paths import get_preferences_path
 
 class PreferenceManager:
     """
-    Manages user preferences by reading from and writing to a 'user_preferences.ini' file.
-    Implements a singleton pattern to ensure only one instance exists application-wide.
-    Handles default preference creation and migration for new settings.
-    Stores the INI file in a user-specific configuration directory.
+    Gère les préférences utilisateur en lisant et écrivant dans un fichier .ini.
+    Le fichier est stocké dans un répertoire de configuration spécifique à l'utilisateur.
     """
     _instance: Optional['PreferenceManager'] = None
     _initialized: bool = False
-
-    APP_NAME = "TrackMyMouse" # Défini une fois pour l'utiliser avec appdirs
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
@@ -27,16 +28,10 @@ class PreferenceManager:
     def __init__(self):
         if not self._initialized:
             self.config = configparser.ConfigParser()
-            self.config_file = 'user_preferences.ini' # Nom du fichier de configuration
-
-            # --- MODIFIÉ : Utilisation d'appdirs pour déterminer le chemin ---
-            # Obtenir le dossier de configuration spécifique à l'utilisateur pour cette application
-            # Omission de app_author, appdirs utilisera des valeurs par défaut raisonnables ou l'omettra.
-            self.app_config_dir = appdirs.user_config_dir(self.APP_NAME)
             
-            # Le chemin complet du fichier de configuration sera dans ce dossier utilisateur
-            self.full_config_path = os.path.join(self.app_config_dir, self.config_file)
-            # L'ancienne variable self.config_dir n'est plus nécessaire de la même manière.
+            # --- MODIFIÉ : Utilisation de la fonction centralisée pour obtenir le chemin ---
+            # La logique de construction du chemin est maintenant dans utils/paths.py
+            self.full_config_path = get_preferences_path()
             # --- FIN DE LA MODIFICATION ---
             
             self._ensure_config_file_exists()
@@ -46,34 +41,28 @@ class PreferenceManager:
 
     def _ensure_config_file_exists(self):
         """
-        Ensures the user-specific configuration directory and file exist.
-        Creates the directory and/or the file with default values if necessary.
-        Also adds any new default preferences to an existing file.
+        S'assure que le fichier de configuration existe. Si non, le crée avec les valeurs par défaut.
+        Met également à jour les configurations existantes avec les nouvelles clés par défaut si elles sont manquantes.
         """
-        # --- MODIFIÉ : Utilisation de self.app_config_dir ---
-        # S'assurer que le dossier de configuration utilisateur existe
-        if not os.path.exists(self.app_config_dir):
-            os.makedirs(self.app_config_dir, exist_ok=True) # exist_ok=True pour ne pas lever d'erreur si le dossier existe déjà
-        # --- FIN DE LA MODIFICATION ---
-
+        # La création du dossier est maintenant gérée par get_preferences_path() dans utils/paths.py
         if not os.path.exists(self.full_config_path):
             self._set_default_preferences()
             self.save_preferences()
         else:
             self.load_preferences() 
-            self._add_missing_default_preferences() 
-            self.save_preferences() 
+            # On vérifie s'il faut ajouter des clés manquantes et on sauvegarde uniquement si nécessaire
+            if self._add_missing_default_preferences():
+                self.save_preferences()
 
     def _generate_first_launch_date_string(self) -> str:
         """
-        Generates the first launch date string formatted as AAAA-MM-JJTHH:MM:SS.
-        Microseconds are excluded.
+        Génère la date du premier lancement au format AAAA-MM-JJTHH:MM:SS.
         """
         now = datetime.datetime.now()
         return now.replace(microsecond=0).isoformat(timespec='seconds')
 
     def _set_default_preferences(self):
-        """Sets default preferences for a new configuration file."""
+        """Définit les préférences par défaut pour un nouveau fichier de configuration."""
         self.config['General'] = {
             'language': 'en',
             'distance_unit': 'metric',
@@ -90,61 +79,62 @@ class PreferenceManager:
             'screen_config_verified': 'False'
         }
 
-    def _add_missing_default_preferences(self):
+    def _add_missing_default_preferences(self) -> bool:
         """
-        Adds any missing default preferences to existing sections
-        when an older configuration file is loaded.
+        Ajoute les clés de configuration par défaut manquantes.
+        Retourne True si des modifications ont été apportées, False sinon.
         """
+        modified = False
+        
         if 'General' not in self.config:
             self.config['General'] = {}
-        if 'language' not in self.config['General']:
-            self.config['General']['language'] = 'en'
-        # ... (les autres vérifications restent les mêmes) ...
-        if 'distance_unit' not in self.config['General']:
-            self.config['General']['distance_unit'] = 'metric'
-        if 'first_launch_date' not in self.config['General']:
-            self.config['General']['first_launch_date'] = self._generate_first_launch_date_string()
-        if 'date_format' not in self.config['General']:
-            self.config['General']['date_format'] = '%%Y-%%m-%%d %%H:%%M:%%S'
-        if 'show_first_launch_dialog' not in self.config['General']:
-            self.config['General']['show_first_launch_dialog'] = 'True'
-        if 'track_mouse_distance' not in self.config['General']:
-            self.config['General']['track_mouse_distance'] = 'True'
-        if 'track_mouse_clicks' not in self.config['General']:
-            self.config['General']['track_mouse_clicks'] = 'True'
+            modified = True
+        
+        # Dictionnaire des clés à vérifier/ajouter pour la section [General]
+        general_defaults = {
+            'language': 'en',
+            'distance_unit': 'metric',
+            'first_launch_date': self._generate_first_launch_date_string, # On passe la fonction
+            'date_format': '%%Y-%%m-%%d %%H:%%M:%%S',
+            'show_first_launch_dialog': 'True',
+            'track_mouse_distance': 'True',
+            'track_mouse_clicks': 'True'
+        }
+        for key, value in general_defaults.items():
+            if key not in self.config['General']:
+                # Si la valeur est une fonction (comme pour la date), on l'appelle pour obtenir la valeur
+                self.config['General'][key] = value() if callable(value) else value
+                modified = True
 
         if 'Screen' not in self.config:
             self.config['Screen'] = {}
-        if 'physical_width_cm' not in self.config['Screen']:
-            self.config['Screen']['physical_width_cm'] = '0.0'
-        if 'physical_height_cm' not in self.config['Screen']:
-            self.config['Screen']['physical_height_cm'] = '0.0'
-        if 'dpi' not in self.config['Screen']:
-            self.config['Screen']['dpi'] = '96.0'
-        if 'screen_config_verified' not in self.config['Screen']:
-            self.config['Screen']['screen_config_verified'] = 'False'
-
+            modified = True
+            
+        # Dictionnaire des clés à vérifier/ajouter pour la section [Screen]
+        screen_defaults = {
+            'physical_width_cm': '0.0',
+            'physical_height_cm': '0.0',
+            'dpi': '96.0',
+            'screen_config_verified': 'False'
+        }
+        for key, value in screen_defaults.items():
+            if key not in self.config['Screen']:
+                self.config['Screen'][key] = value
+                modified = True
+        
+        return modified
 
     def load_preferences(self):
-        """Loads preferences from the INI file."""
-        # Doit gérer le cas où le fichier n'existe pas encore (géré par _ensure_config_file_exists)
+        """Charge les préférences depuis le fichier INI."""
         if os.path.exists(self.full_config_path):
             self.config.read(self.full_config_path)
-        # else: le fichier sera créé avec les valeurs par défaut par _ensure_config_file_exists
 
     def save_preferences(self):
-        """Saves current preferences to the INI file."""
-        # S'assurer que le dossier existe avant de sauvegarder (normalement fait par _ensure_config_file_exists à l'init)
-        # Mais une vérification supplémentaire peut être utile si le dossier a été supprimé manuellement.
-        if not os.path.exists(self.app_config_dir):
-            os.makedirs(self.app_config_dir, exist_ok=True)
+        """Sauvegarde les préférences actuelles dans le fichier INI."""
         with open(self.full_config_path, 'w') as configfile:
             self.config.write(configfile)
 
-    # --- General Preferences ---
-    # Les méthodes get/set pour les préférences spécifiques restent inchangées
-    # car elles opèrent sur self.config et self.save_preferences() qui utilisent maintenant
-    # les chemins mis à jour.
+    # --- Les méthodes get/set spécifiques restent inchangées ---
 
     def get_language(self) -> str:
         return self.config.get('General', 'language', fallback='en')
@@ -196,7 +186,6 @@ class PreferenceManager:
         self.config.set('General', 'track_mouse_clicks', str(track))
         self.save_preferences()
 
-    # --- Screen Preferences ---
     def get_physical_width_cm(self) -> float:
         return self.config.getfloat('Screen', 'physical_width_cm', fallback=0.0)
 
@@ -229,8 +218,6 @@ class PreferenceManager:
         self.save_preferences()
 
     def calculate_and_set_dpi(self) -> Optional[float]:
-        # Cette méthode utilise screeninfo, qui est une dépendance externe.
-        # Elle ne dépend pas directement des chemins de fichiers de configuration.
         try:
             monitors = screeninfo.get_monitors()
             if not monitors:
@@ -240,7 +227,6 @@ class PreferenceManager:
             print(f"Warning: Could not get monitor info for DPI calculation: {e}")
             return None
 
-
         current_monitor = monitors[0] 
         physical_width_cm = self.get_physical_width_cm()
         physical_height_cm = self.get_physical_height_cm()
@@ -249,11 +235,10 @@ class PreferenceManager:
             physical_width_inches = physical_width_cm / 2.54
             physical_height_inches = physical_height_cm / 2.54
             
-            # Assurer que width et height de monitor sont des int pour éviter des erreurs avec getattr
             px_width = current_monitor.width if hasattr(current_monitor, 'width') and isinstance(current_monitor.width, int) else 1920
             px_height = current_monitor.height if hasattr(current_monitor, 'height') and isinstance(current_monitor.height, int) else 1080
 
-            if physical_width_inches == 0 or physical_height_inches == 0: # Éviter la division par zéro
+            if physical_width_inches == 0 or physical_height_inches == 0:
                 print("Warning: Physical screen dimensions in inches are zero, cannot calculate DPI.")
                 return None
 
