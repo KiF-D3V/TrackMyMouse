@@ -240,6 +240,7 @@ if __name__ == "__main__":
     logging.getLogger('gui.main_window').setLevel(logging.INFO)
     logging.getLogger('managers.stats_manager').setLevel(logging.INFO)
     logging.getLogger('gui.history_tab').setLevel(logging.INFO)
+    logging.getLogger('managers.stats_repository').setLevel(logging.INFO)
 
     main_logger = logging.getLogger(__name__)
     main_logger.info("Démarrage application TrackMyMouse (__main__).")
