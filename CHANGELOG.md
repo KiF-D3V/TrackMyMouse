@@ -2,6 +2,16 @@
 
 Toutes les modifications notables apportées à ce projet seront documentées dans ce fichier.
 
+## [0.4.0] - 2025-06-07
+
+### Ajouté (Added)
+- Nouvelle section "Records" dans l'onglet Historique : affiche le jour de la plus grande distance et le jour de la plus grande activité.
+
+### Modifié (Changed)
+- Amélioration de l'ergonomie de l'onglet Historique : les sections sont maintenant réduites par défaut et fonctionnent en "accordéon".
+- Refonte de la gestion des statistiques pour une meilleure maintenabilité.
+
+
 ## [0.3.0] - 2025-06-06
 
 ### Modifié (Changed)

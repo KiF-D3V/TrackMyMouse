@@ -94,6 +94,13 @@
     "history_col_active": "Actif",
     "history_col_inactive": "Inactif",
     "history_no_data": "Aucune donnée disponible",
-    "history_load_error": "Erreur de chargement des données"
+    "history_load_error": "Erreur de chargement des données",
+
+    "_RECORDS_SECTION": "Textes pour la section des records",
+    "records_section_title": "Records",
+    "record_distance_label": "Record de distance",
+    "record_activity_label": "Record d'activité",
+    "no_record_yet": "Aucun record",
+    "on_date": "le"
 
 }

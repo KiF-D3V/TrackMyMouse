@@ -1,6 +1,6 @@
 # TrackMyMouse
 
-**Version actuelle : 0.3.0**
+**Version actuelle : 0.4.0**
 
 TrackMyMouse est conçue pour suivre et analyser l'activité de votre souris !
 
@@ -13,7 +13,8 @@ L'application enregistre ces données discrètement en arrière-plan et vous per
 * **Analyse du temps d'activité/inactivité** : Mesure le temps pendant lequel la souris est active (en mouvement ou clics récents) et le temps d'inactivité.
 * **Statistiques** :
     * Consultez vos statistiques pour la journée en cours.
-    * Consultation de l'historique des statistiques journalières (N derniers jours).
+    * Consultez votre historique : statistiques journalières (N derniers jours).
+    * Consultez vos Records dans l'onglet Historique : affiche le jour de la plus grande distance et le jour de la plus grande activité.
     * Accédez au total général de votre activité depuis la première utilisation de l'application.
 * **Interface utilisateur claire** : Une fenêtre simple d'utilisation pour visualiser vos données et configurer les paramètres.
 * **Options de personnalisation** :

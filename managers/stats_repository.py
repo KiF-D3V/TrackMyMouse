@@ -23,7 +23,6 @@ class StatsRepository:
         """Établit la connexion à la base de données et crée les tables si elles n'existent pas."""
         self.logger.info(f"Repository : Connexion à la base de données : {self.db_path}")
         try:
-            # La création du dossier est gérée par get_db_path()
             self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
             self._conn.row_factory = sqlite3.Row
             self._cursor = self._conn.cursor()
@@ -92,7 +91,6 @@ class StatsRepository:
             stats_dict.get('inactive_time_seconds', 0),
             stats_dict.get('date')
         ))
-        # Le commit est souvent géré par une méthode save() plus globale
 
     def get_app_setting(self, key: str) -> Optional[str]:
         """Récupère une valeur depuis la table app_settings."""
@@ -134,6 +132,58 @@ class StatsRepository:
         rows = self._cursor.fetchall()
         return [dict(row) for row in rows]
 
+    # --- AJOUT DES NOUVELLES MÉTHODES POUR LES RECORDS ---
+
+    def get_record_day_for_distance(self) -> Optional[Dict[str, Any]]:
+        """
+        Récupère le jour avec la plus grande distance parcourue.
+        """
+        if not self._cursor:
+            self.logger.error("Repository: Impossible de récupérer le record de distance, curseur non disponible.")
+            return None
+        
+        query = "SELECT * FROM daily_stats ORDER BY distance_pixels DESC LIMIT 1"
+        try:
+            self.logger.debug("Repository: Recherche du jour record pour la distance.")
+            self._cursor.execute(query)
+            row = self._cursor.fetchone()
+            # Un record n'est valide que si la distance est supérieure à zéro
+            if row and row['distance_pixels'] > 0:
+                self.logger.info(f"Repository: Jour record pour la distance trouvé: {dict(row)}")
+                return dict(row)
+            else:
+                self.logger.info("Repository: Aucun record de distance significatif trouvé.")
+                return None
+        except sqlite3.Error as e:
+            self.logger.error(f"Repository: Erreur SQLite lors de la recherche du record de distance: {e}", exc_info=True)
+            return None
+
+    def get_record_day_for_activity(self) -> Optional[Dict[str, Any]]:
+        """
+        Récupère le jour avec le plus grand temps d'activité.
+        """
+        if not self._cursor:
+            self.logger.error("Repository: Impossible de récupérer le record d'activité, curseur non disponible.")
+            return None
+
+        query = "SELECT * FROM daily_stats ORDER BY active_time_seconds DESC LIMIT 1"
+        try:
+            self.logger.debug("Repository: Recherche du jour record pour l'activité.")
+            self._cursor.execute(query)
+            row = self._cursor.fetchone()
+            # Un record n'est valide que si le temps d'activité est supérieur à zéro
+            if row and row['active_time_seconds'] > 0:
+                self.logger.info(f"Repository: Jour record pour l'activité trouvé: {dict(row)}")
+                return dict(row)
+            else:
+                self.logger.info("Repository: Aucun record d'activité significatif trouvé.")
+                return None
+        except sqlite3.Error as e:
+            self.logger.error(f"Repository: Erreur SQLite lors de la recherche du record d'activité: {e}", exc_info=True)
+            return None
+
+    # --- FIN DE L'AJOUT ---
+
     def save_changes(self):
         """Valide (commit) les transactions en attente sur la base de données."""
         if self._conn:
@@ -144,6 +194,6 @@ class StatsRepository:
         """Ferme la connexion à la base de données."""
         if self._conn:
             self.logger.info("Repository : Fermeture de la connexion à la BDD.")
-            self.save_changes() # Sauvegarde une dernière fois avant de fermer
+            self.save_changes() 
             self._conn.close()
             self._conn = None

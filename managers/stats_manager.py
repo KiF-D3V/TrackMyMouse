@@ -136,6 +136,22 @@ class StatsManager:
         """Récupère l'historique des N derniers jours via le repository."""
         self.save_changes()
         return self.stats_repository.get_last_n_days_stats(num_days)
+    
+    def get_record_day_for_distance(self) -> Optional[Dict[str, Any]]:
+        """
+        Demande au repository le jour record pour la distance, après avoir sauvegardé l'état actuel.
+        """
+        self.logger.debug("Passerelle StatsManager: demande du record de distance.")
+        self.save_changes() # Assure que les données en mémoire sont incluses dans le calcul
+        return self.stats_repository.get_record_day_for_distance()
+
+    def get_record_day_for_activity(self) -> Optional[Dict[str, Any]]:
+        """
+        Demande au repository le jour record pour l'activité, après avoir sauvegardé l'état actuel.
+        """
+        self.logger.debug("Passerelle StatsManager: demande du record d'activité.")
+        self.save_changes() # Assure que les données en mémoire sont incluses dans le calcul
+        return self.stats_repository.get_record_day_for_activity()
 
     def save_changes(self):
         """Demande au repository de sauvegarder les statistiques en mémoire du jour courant."""
