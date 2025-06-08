@@ -7,14 +7,13 @@ import logging
 from pynput import mouse # type: ignore
 from typing import Optional, List, Dict, Any 
 
+# --- AJOUT: Import des constantes de configuration ---
+from config.app_config import INACTIVITY_THRESHOLD_SECONDS, ACTIVITY_TRACKER_INTERVAL
+
 from managers.preference_manager import PreferenceManager
 from utils.service_locator import service_locator
-# --- AJOUT : Import du nouveau StatsRepository ---
 from .stats_repository import StatsRepository
 
-
-# --- Constants ---
-INACTIVITY_THRESHOLD_SECONDS = 2 
 
 class StatsManager:
     """
@@ -26,10 +25,8 @@ class StatsManager:
         self.logger = logging.getLogger(__name__) 
         self.logger.info("Initialisation de StatsManager...")
 
-        # --- MODIFIÉ : Utilisation de StatsRepository ---
         self.stats_repository = StatsRepository()
         service_locator.register_service("stats_repository", self.stats_repository)
-        # --- FIN DE LA MODIFICATION ---
 
         self.preference_manager: PreferenceManager = service_locator.get_service("preference_manager")
         
@@ -78,7 +75,8 @@ class StatsManager:
         """
         self.logger.info("Thread de suivi d'activité démarré.")
         while not self._stop_tracker:
-            time.sleep(1) 
+            # --- MODIFIÉ: Utilisation de la constante pour l'intervalle ---
+            time.sleep(ACTIVITY_TRACKER_INTERVAL) 
             if self._stop_tracker: break
 
             current_date = datetime.date.today().isoformat()
@@ -91,6 +89,7 @@ class StatsManager:
                 self.is_active = True 
                 self.logger.info(f"Statistiques réinitialisées pour le nouveau jour: {self.today}.")
 
+            # Utilise la constante INACTIVITY_THRESHOLD_SECONDS importée
             if (time.time() - self.last_activity_time) <= INACTIVITY_THRESHOLD_SECONDS:
                 if not self.is_active: self.is_active = True
                 self._current_day_stats_in_memory['active_time_seconds'] += 1
@@ -122,11 +121,27 @@ class StatsManager:
         return self._current_day_stats_in_memory
 
     def get_global_stats(self) -> dict:
-        """Demande au repository de calculer les statistiques globales."""
-        self.logger.debug("Récupération des statistiques globales via le repository.")
+        """
+        Demande au repository de calculer les statistiques globales et 
+        mappe les résultats dans un format attendu par l'application.
+        """
+        self.logger.debug("Récupération et mappage des statistiques globales.")
         self.save_changes() 
-        global_stats = self.stats_repository.get_global_stats()
-        return global_stats if global_stats else self._get_empty_global_stats_structure()
+        
+        repo_stats = self.stats_repository.get_global_stats()
+        
+        if not repo_stats:
+            return self._get_empty_global_stats_structure()
+            
+        mapped_stats = {
+            'total_distance_pixels': repo_stats.get('total_distance_pixels') or 0.0,
+            'left_clicks': repo_stats.get('total_left_clicks') or 0,
+            'right_clicks': repo_stats.get('total_right_clicks') or 0,
+            'middle_clicks': repo_stats.get('total_middle_clicks') or 0,
+            'total_active_time_seconds': repo_stats.get('total_active_time_seconds') or 0,
+            'total_inactive_time_seconds': repo_stats.get('total_inactive_time_seconds') or 0,
+        }
+        return mapped_stats
 
     def get_first_launch_date(self) -> Optional[str]:
         """Récupère la date de premier lancement via le repository."""
@@ -142,7 +157,7 @@ class StatsManager:
         Demande au repository le jour record pour la distance, après avoir sauvegardé l'état actuel.
         """
         self.logger.debug("Passerelle StatsManager: demande du record de distance.")
-        self.save_changes() # Assure que les données en mémoire sont incluses dans le calcul
+        self.save_changes()
         return self.stats_repository.get_record_day_for_distance()
 
     def get_record_day_for_activity(self) -> Optional[Dict[str, Any]]:
@@ -150,7 +165,7 @@ class StatsManager:
         Demande au repository le jour record pour l'activité, après avoir sauvegardé l'état actuel.
         """
         self.logger.debug("Passerelle StatsManager: demande du record d'activité.")
-        self.save_changes() # Assure que les données en mémoire sont incluses dans le calcul
+        self.save_changes()
         return self.stats_repository.get_record_day_for_activity()
 
     def save_changes(self):
