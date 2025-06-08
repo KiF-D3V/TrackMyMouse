@@ -1,4 +1,4 @@
-# config/version.py
+# version.py
 
 # Version de l'application (MAJEURE.MINEURE.PATCH)
 __version__ = "0.4.0"
