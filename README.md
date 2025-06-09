@@ -20,5 +20,6 @@ L'application enregistre ces données discrètement en arrière-plan et vous per
 * **Options de personnalisation** :
     * Choisissez la langue de l'interface (Français / English).
     * Sélectionnez votre système d'unités préféré (métrique ou impérial) pour l'affichage des distances.
-    * Possibilité de renseigner les dimensions physiques de votre écran pour une conversion précise des pixels en unités réelles.
+    * Interface modulable avec des onglets (Historique, Records, Badges) activables ou désactivables via les paramètres
+    * Renseignez les dimensions physiques de votre écran pour une conversion précise des pixels en unités réelles.
 * **Fonctionnement discret en arrière-plan** : L'application peut être réduite à une icône dans la barre système (systray) et continuer son travail de suivi sans vous déranger.

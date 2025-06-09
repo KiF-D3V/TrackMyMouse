@@ -2,6 +2,21 @@
 
 Toutes les modifications notables apportées à ce projet seront documentées dans ce fichier.
 
+## [0.5.0] - 2025-06-09
+
+### Added
+- **Personnalisation de l'interface :** Ajout d'une section "Affichage" dans les Paramètres pour activer ou désactiver les onglets "Historique", "Records" et "Badges".
+- **Nouvel onglet "Records" :** La section des records a été déplacée de l'onglet "Historique" vers son propre onglet dédié pour plus de clarté.
+
+### Changed
+- **Architecture de l'onglet Paramètres :** Refactoring complet de l'onglet en plusieurs composants indépendants pour améliorer la stabilité et la maintenabilité.
+- **Architecture de l'UI principale :** `MainWindow` charge maintenant les onglets de manière dynamique en fonction des préférences de l'utilisateur.
+
+### Fixed
+- **Stabilité des Paramètres :** Correction d'une série de bugs complexes qui empêchaient la mise à jour correcte de l'interface lors du changement de langue ou d'unité.
+- **Premier Lancement :** Correction d'un bug qui provoquait l'affichage en boucle de la fenêtre de premier lancement.
+
+
 ## [0.4.0] - 2025-06-07
 
 ### Ajouté (Added)
