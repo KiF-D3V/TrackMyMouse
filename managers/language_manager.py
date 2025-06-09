@@ -6,8 +6,7 @@ import sys
 import logging
 from utils.service_locator import service_locator
 
-# --- MODIFIÉ : Remplacement de la fonction locale par un import ---
-from utils.paths import get_locales_path # On importe directement la fonction qui donne le bon chemin
+from utils.paths import get_locales_path
 
 class LanguageManager:
     _instance = None
@@ -29,16 +28,18 @@ class LanguageManager:
             self.logger.info("LanguageManager initialisé.")
 
 
+    # --- MÉTHODE CORRIGÉE (VERSION FINALE) ---
     def _load_languages(self):
         self.logger.debug("Chargement des fichiers de langue...")
-        # --- MODIFIÉ : Utilisation de la nouvelle fonction importée ---
         lang_dir = get_locales_path()
         self.logger.debug(f"Chemin du dossier des langues obtenu depuis utils.paths: {lang_dir}")
-        # --- FIN DE LA MODIFICATION ---
 
         if not os.path.exists(lang_dir) or not os.path.isdir(lang_dir):
             self.logger.error(f"Le répertoire des langues est introuvable ou n'est pas un dossier à {lang_dir}")
             return
+
+        # Caractères à supprimer : tous les espaces standards + l'espace insécable
+        WHITESPACE_CHARS_TO_STRIP = ' \t\n\r\f\v\u00A0'
 
         loaded_langs = []
         for filename in os.listdir(lang_dir):
@@ -47,9 +48,11 @@ class LanguageManager:
                 filepath = os.path.join(lang_dir, filename)
                 try:
                     with open(filepath, 'r', encoding='utf-8') as f:
-                        self.languages[lang_code] = json.load(f)
+                        data = json.load(f)
+                        # On nettoie chaque clé avec la liste complète des caractères d'espacement
+                        self.languages[lang_code] = {k.strip(WHITESPACE_CHARS_TO_STRIP): v for k, v in data.items()}
                     loaded_langs.append(lang_code)
-                    self.logger.debug(f"Fichier de langue '{filepath}' chargé pour le code '{lang_code}'.")
+                    self.logger.debug(f"Fichier de langue '{filepath}' chargé et nettoyé pour le code '{lang_code}'.")
                 except json.JSONDecodeError:
                     self.logger.error(f"Erreur de décodage JSON dans le fichier: {filepath}", exc_info=True)
                 except Exception as e:
@@ -73,21 +76,23 @@ class LanguageManager:
 
     def get_text(self, key: str, default_text: str = "") -> str:
         text = self.languages.get(self.current_language, {}).get(key)
+        
         if text is None:
-            original_default_text = default_text
-            text = self.languages.get('en', {}).get(key, default_text)
-            if text == original_default_text and key not in self.languages.get('en', {}):
-                self.logger.warning(f"Clé de texte '{key}' non trouvée dans la langue actuelle ({self.current_language}) ni en anglais. Utilisation du texte par défaut.")
+            text = self.languages.get('en', {}).get(key)
+
+        if text is None:
+            text = default_text
+            self.logger.warning(
+                f"Clé de texte '{key}' non trouvée dans la langue actuelle "
+                f"({self.current_language}) ni en anglais. Utilisation du texte par défaut."
+            )
+            
         return text
 
     def get_current_language(self) -> str:
         return self.current_language
 
     def get_language_names(self) -> dict:
-        """
-        Retourne un dictionnaire des noms de langue traduits, mappant les codes (fr, en)
-        aux noms d'affichage (Français, English).
-        """
         return {
             code: self.get_text(f'language_{code}', code.upper()) 
             for code in self.languages.keys()

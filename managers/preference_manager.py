@@ -1,4 +1,4 @@
-# config/preference_manager.py
+# managers/preference_manager.py
 
 import configparser
 import os
@@ -6,10 +6,6 @@ import screeninfo
 import datetime
 from typing import Optional
 
-# L'import d'appdirs n'est plus nécessaire ici.
-# import appdirs 
-
-# --- AJOUT : Import de la nouvelle fonction de gestion de chemin depuis utils.paths ---
 from utils.paths import get_preferences_path
 
 class PreferenceManager:
@@ -28,15 +24,9 @@ class PreferenceManager:
     def __init__(self):
         if not self._initialized:
             self.config = configparser.ConfigParser()
-            
-            # --- MODIFIÉ : Utilisation de la fonction centralisée pour obtenir le chemin ---
-            # La logique de construction du chemin est maintenant dans utils/paths.py
             self.full_config_path = get_preferences_path()
-            # --- FIN DE LA MODIFICATION ---
-            
             self._ensure_config_file_exists()
             self.load_preferences()
-            
             self._initialized = True
 
     def _ensure_config_file_exists(self):
@@ -44,22 +34,17 @@ class PreferenceManager:
         S'assure que le fichier de configuration existe. Si non, le crée avec les valeurs par défaut.
         Met également à jour les configurations existantes avec les nouvelles clés par défaut si elles sont manquantes.
         """
-        # La création du dossier est maintenant gérée par get_preferences_path() dans utils/paths.py
         if not os.path.exists(self.full_config_path):
             self._set_default_preferences()
             self.save_preferences()
         else:
             self.load_preferences() 
-            # On vérifie s'il faut ajouter des clés manquantes et on sauvegarde uniquement si nécessaire
             if self._add_missing_default_preferences():
                 self.save_preferences()
 
     def _generate_first_launch_date_string(self) -> str:
-        """
-        Génère la date du premier lancement au format AAAA-MM-JJTHH:MM:SS.
-        """
-        now = datetime.datetime.now()
-        return now.replace(microsecond=0).isoformat(timespec='seconds')
+        """Génère la date du premier lancement au format AAAA-MM-JJTHH:MM:SS."""
+        return datetime.datetime.now().replace(microsecond=0).isoformat(timespec='seconds')
 
     def _set_default_preferences(self):
         """Définit les préférences par défaut pour un nouveau fichier de configuration."""
@@ -78,6 +63,12 @@ class PreferenceManager:
             'dpi': '96.0', 
             'screen_config_verified': 'False'
         }
+        # --- AJOUT: Nouvelle section pour les fonctionnalités ---
+        self.config['Features'] = {
+            'show_history_tab': 'True',
+            'show_records_tab': 'True',
+            'show_badges_tab': 'True'  # MODIFIÉ: Utilisation de "badges"
+        }
 
     def _add_missing_default_preferences(self) -> bool:
         """
@@ -86,40 +77,47 @@ class PreferenceManager:
         """
         modified = False
         
+        # Section [General]
         if 'General' not in self.config:
             self.config['General'] = {}
             modified = True
-        
-        # Dictionnaire des clés à vérifier/ajouter pour la section [General]
         general_defaults = {
-            'language': 'en',
-            'distance_unit': 'metric',
-            'first_launch_date': self._generate_first_launch_date_string, # On passe la fonction
+            'language': 'en', 'distance_unit': 'metric',
+            'first_launch_date': self._generate_first_launch_date_string,
             'date_format': '%%Y-%%m-%%d %%H:%%M:%%S',
-            'show_first_launch_dialog': 'True',
-            'track_mouse_distance': 'True',
+            'show_first_launch_dialog': 'True', 'track_mouse_distance': 'True',
             'track_mouse_clicks': 'True'
         }
         for key, value in general_defaults.items():
             if key not in self.config['General']:
-                # Si la valeur est une fonction (comme pour la date), on l'appelle pour obtenir la valeur
                 self.config['General'][key] = value() if callable(value) else value
                 modified = True
 
+        # Section [Screen]
         if 'Screen' not in self.config:
             self.config['Screen'] = {}
             modified = True
-            
-        # Dictionnaire des clés à vérifier/ajouter pour la section [Screen]
         screen_defaults = {
-            'physical_width_cm': '0.0',
-            'physical_height_cm': '0.0',
-            'dpi': '96.0',
-            'screen_config_verified': 'False'
+            'physical_width_cm': '0.0', 'physical_height_cm': '0.0',
+            'dpi': '96.0', 'screen_config_verified': 'False'
         }
         for key, value in screen_defaults.items():
             if key not in self.config['Screen']:
                 self.config['Screen'][key] = value
+                modified = True
+
+        # --- AJOUT: Vérification pour la nouvelle section [Features] ---
+        if 'Features' not in self.config:
+            self.config['Features'] = {}
+            modified = True
+        features_defaults = {
+            'show_history_tab': 'True',
+            'show_records_tab': 'True',
+            'show_badges_tab': 'True'  # MODIFIÉ: Utilisation de "badges"
+        }
+        for key, value in features_defaults.items():
+            if key not in self.config['Features']:
+                self.config['Features'][key] = value
                 modified = True
         
         return modified
@@ -134,8 +132,7 @@ class PreferenceManager:
         with open(self.full_config_path, 'w') as configfile:
             self.config.write(configfile)
 
-    # --- Les méthodes get/set spécifiques restent inchangées ---
-
+    # --- Getters/Setters pour [General] ---
     def get_language(self) -> str:
         return self.config.get('General', 'language', fallback='en')
 
@@ -151,8 +148,7 @@ class PreferenceManager:
         self.save_preferences()
     
     def get_first_launch_date(self) -> str:
-        return self.config.get('General', 'first_launch_date', 
-                               fallback=self._generate_first_launch_date_string())
+        return self.config.get('General', 'first_launch_date', fallback=self._generate_first_launch_date_string())
 
     def set_first_launch_date(self, date_iso_str: str):
         self.config.set('General', 'first_launch_date', date_iso_str)
@@ -186,6 +182,7 @@ class PreferenceManager:
         self.config.set('General', 'track_mouse_clicks', str(track))
         self.save_preferences()
 
+    # --- Getters/Setters pour [Screen] ---
     def get_physical_width_cm(self) -> float:
         return self.config.getfloat('Screen', 'physical_width_cm', fallback=0.0)
 
@@ -194,11 +191,9 @@ class PreferenceManager:
 
     def set_physical_dimensions(self, width: float, height: float, unit: str):
         if unit == 'imperial':
-            width_cm = width * 2.54
-            height_cm = height * 2.54
+            width_cm, height_cm = width * 2.54, height * 2.54
         else: 
-            width_cm = width
-            height_cm = height
+            width_cm, height_cm = width, height
         self.config.set('Screen', 'physical_width_cm', str(width_cm))
         self.config.set('Screen', 'physical_height_cm', str(height_cm))
         self.save_preferences()
@@ -215,6 +210,29 @@ class PreferenceManager:
 
     def set_screen_config_verified(self, verified: bool):
         self.config.set('Screen', 'screen_config_verified', str(verified))
+        self.save_preferences()
+
+    # --- AJOUT: Getters/Setters pour la nouvelle section [Features] ---
+
+    def get_show_history_tab(self) -> bool:
+        return self.config.getboolean('Features', 'show_history_tab', fallback=True)
+
+    def set_show_history_tab(self, show: bool):
+        self.config.set('Features', 'show_history_tab', str(show))
+        self.save_preferences()
+
+    def get_show_records_tab(self) -> bool:
+        return self.config.getboolean('Features', 'show_records_tab', fallback=True)
+
+    def set_show_records_tab(self, show: bool):
+        self.config.set('Features', 'show_records_tab', str(show))
+        self.save_preferences()
+
+    def get_show_badges_tab(self) -> bool:
+        return self.config.getboolean('Features', 'show_badges_tab', fallback=True)
+
+    def set_show_badges_tab(self, show: bool):
+        self.config.set('Features', 'show_badges_tab', str(show))
         self.save_preferences()
 
     def calculate_and_set_dpi(self) -> Optional[float]:

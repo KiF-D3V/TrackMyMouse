@@ -15,6 +15,8 @@
 
     "_MAIN_WINDOW_TABS": "Main window tab names",
     "today_tab_title": "Today",
+    "history_tab_title": "History",
+    "records_tab_title": "Records",
     "settings_tab_title": "Settings",
     "about_tab_title": "About",
 
@@ -65,6 +67,13 @@
     "calculated_dpi": "Calculated DPI",
     "calculated_dpi_label": "Calculated DPI:",
 
+    "_SETTINGS_TAB_FEATURES": "Tab Display Settings",
+    "features_settings_title": "Tab Display",
+    "show_history_tab_label": "Show History tab:",
+    "show_records_tab_label": "Show Records tab:",
+    "show_badges_tab_label": "Show Badges tab:",
+    "features_restart_required_notice": "A restart is required for these changes to take effect.",
+
     "_FIRST_LAUNCH_DIALOG": "First launch dialog texts",
     "welcome_message": "Welcome to TrackMyMouse !",
     "first_launch_prompt": "To accurately track your mouse distance, please provide your screen's physical dimensions.",
@@ -80,7 +89,6 @@
     "version_label": "Version:",
 
     "_HISTORY_TAB": "History Tab Texts",
-    "history_tab_title": "History",
     "history_last_n_days_title": "Last Days History",
     "history_show_days_label": "Show:",
     "history_7_days": "7 days",
@@ -102,5 +110,4 @@
     "record_activity_label": "Activity Record",
     "no_record_yet": "No record yet",
     "on_date": "on"
-
 }

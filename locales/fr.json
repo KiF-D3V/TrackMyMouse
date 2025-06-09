@@ -14,6 +14,8 @@
 
     "_MAIN_WINDOW_TABS": "Noms des onglets de la fenêtre principale",
     "today_tab_title": "Aujourd'hui",
+    "history_tab_title": "Historique",
+    "records_tab_title": "Records",
     "settings_tab_title": "Paramètres",
     "about_tab_title": "À propos",
 
@@ -65,6 +67,13 @@
     "calculated_dpi": "DPI Calculé",
     "calculated_dpi_label": "DPI Calculé :",
 
+    "_SETTINGS_TAB_FEATURES": "Paramètres d'affichage des onglets",
+    "features_settings_title": "Affichage des onglets",
+    "show_history_tab_label": "Afficher l'onglet Historique :",
+    "show_records_tab_label": "Afficher l'onglet Records :",
+    "show_badges_tab_label": "Afficher l'onglet Badges :",
+    "features_restart_required_notice": "Un redémarrage est nécessaire pour appliquer ces changements.",
+
     "_FIRST_LAUNCH_DIALOG": "Textes du dialogue de premier lancement",
     "welcome_message": "Bienvenue sur TrackMyMouse !",
     "first_launch_prompt": "Pour suivre précisément la distance de votre souris, veuillez fournir les dimensions physiques de votre écran.",
@@ -80,12 +89,6 @@
     "version_label": "Version :",
 
     "_HISTORY_TAB": "Textes de l'onglet Historique",
-    "history_tab_title": "Historique",
-    "history_last_n_days_title": "Historique des derniers jours",
-    "history_show_days_label": "Afficher :",
-    "history_7_days": "7 jours",
-    "history_14_days": "14 jours",
-    "history_30_days": "30 jours",
     "history_col_date": "Date",
     "history_col_distance": "Distance",
     "history_col_clicks_left": "Gauche",
@@ -95,12 +98,16 @@
     "history_col_inactive": "Inactif",
     "history_no_data": "Aucune donnée disponible",
     "history_load_error": "Erreur de chargement des données",
+    "history_last_n_days_title": "Historique des derniers jours",
+    "history_show_days_label": "Afficher :",
+    "history_7_days": "7 jours",
+    "history_14_days": "14 jours",
+    "history_30_days": "30 jours",
 
-    "_RECORDS_SECTION": "Textes pour la section des records",
+    "_RECORDS_TAB": "Textes pour l'onglet et la section des records",
     "records_section_title": "Records",
     "record_distance_label": "Record de distance",
     "record_activity_label": "Record d'activité",
     "no_record_yet": "Aucun record",
     "on_date": "le"
-
 }
