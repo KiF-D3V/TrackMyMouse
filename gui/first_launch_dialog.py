@@ -210,6 +210,8 @@ class FirstLaunchDialog:
             messagebox.showinfo(self.language_manager.get_text('config_saved_title', 'Configuration Saved'), msg, parent=self.top)
             self.logger.info("Configuration (dimensions, DPI) sauvegardée avec succès depuis le dialogue.")
             
+            self.preference_manager.set_show_first_launch_dialog(False)
+
             self.on_closing(close_app=False) # Ferme le dialogue sans quitter l'app
 
         except ValueError: # Si float() échoue
