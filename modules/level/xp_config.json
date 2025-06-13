@@ -1,0 +1,15 @@
+{
+  "xp_gain_rates": {
+    "per_pixel": 0.0001,
+    "per_left_click": 0.05,
+    "per_right_click": 0.1,
+    "per_middle_click": 0.2,
+    "per_active_second": 0.003
+  },
+  
+  "leveling_formula": {
+    "type": "exponential",
+    "base_xp": 100,
+    "exponent": 1.5
+  }
+}
