@@ -5,8 +5,8 @@ import os
 import screeninfo 
 import datetime
 from typing import Optional
-
 from utils.paths import get_preferences_path
+from config.app_config import OPTIONAL_TABS
 
 class PreferenceManager:
     """
@@ -64,11 +64,11 @@ class PreferenceManager:
             'screen_config_verified': 'False'
         }
         # --- AJOUT: Nouvelle section pour les fonctionnalités ---
-        self.config['Features'] = {
-            'show_history_tab': 'True',
-            'show_records_tab': 'True',
-            'show_badges_tab': 'True'  # MODIFIÉ: Utilisation de "badges"
-        }
+        self.config['Features'] = {}
+        for tab_info in OPTIONAL_TABS:
+            preference_key = tab_info["preference_key"]
+            # On met 'True' comme valeur par défaut pour tous les onglets
+            self.config['Features'][preference_key] = 'True'
 
     def _add_missing_default_preferences(self) -> bool:
         """
@@ -106,21 +106,21 @@ class PreferenceManager:
                 self.config['Screen'][key] = value
                 modified = True
 
-        # --- AJOUT: Vérification pour la nouvelle section [Features] ---
+        # SECTION [Features]
         if 'Features' not in self.config:
             self.config['Features'] = {}
             modified = True
-        features_defaults = {
-            'show_history_tab': 'True',
-            'show_records_tab': 'True',
-            'show_rainmeter_tab': 'True'
-        }
-        for key, value in features_defaults.items():
-            if key not in self.config['Features']:
-                self.config['Features'][key] = value
+        
+        # On parcourt le registre OPTIONAL_TABS pour ajouter les clés dynamiquement
+        for tab_info in OPTIONAL_TABS:
+            preference_key = tab_info["preference_key"]
+            if preference_key not in self.config['Features']:
+                # On met 'True' comme valeur par défaut pour tous les onglets optionnels
+                self.config['Features'][preference_key] = 'True'
                 modified = True
         
         return modified
+    
 
     def load_preferences(self):
         """Charge les préférences depuis le fichier INI."""
@@ -212,28 +212,27 @@ class PreferenceManager:
         self.config.set('Screen', 'screen_config_verified', str(verified))
         self.save_preferences()
 
-    # --- AJOUT: Getters/Setters pour la nouvelle section [Features] ---
+    # Getters/Setters pour la nouvelle section [Features]
 
-    def get_show_history_tab(self) -> bool:
-        return self.config.getboolean('Features', 'show_history_tab', fallback=True)
+    def get_show_tab(self, tab_id: str) -> bool:
+        # On cherche la configuration de l'onglet dans notre registre central
+        for tab_info in OPTIONAL_TABS:
+            if tab_info["id"] == tab_id:
+                preference_key = tab_info["preference_key"]
+                return self.config.getboolean('Features', preference_key, fallback=True)
+        # Si l'ID n'est pas trouvé dans le registre, on n'affiche pas par sécurité
+        return False
+    
+    def set_show_tab(self, tab_id: str, value: bool):
+        # On cherche la configuration de l'onglet dans notre registre central
+        for tab_info in OPTIONAL_TABS:
+            if tab_info["id"] == tab_id:
+                preference_key = tab_info["preference_key"]
+                self.config.set('Features', preference_key, str(value))
+                self.save_preferences()
+                # On peut sortir de la boucle une fois la clé trouvée et modifiée
+                return
 
-    def set_show_history_tab(self, show: bool):
-        self.config.set('Features', 'show_history_tab', str(show))
-        self.save_preferences()
-
-    def get_show_records_tab(self) -> bool:
-        return self.config.getboolean('Features', 'show_records_tab', fallback=True)
-
-    def set_show_records_tab(self, show: bool):
-        self.config.set('Features', 'show_records_tab', str(show))
-        self.save_preferences()
-
-    def get_show_rainmeter_tab(self) -> bool:
-        return self.config.getboolean('Features', 'show_rainmeter_tab', fallback=True)
-
-    def set_show_rainmeter_tab(self, show: bool):
-        self.config.set('Features', 'show_rainmeter_tab', str(show))
-        self.save_preferences()
 
     def calculate_and_set_dpi(self) -> Optional[float]:
         try:

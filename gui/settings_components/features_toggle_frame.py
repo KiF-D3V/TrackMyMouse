@@ -3,7 +3,6 @@
 import tkinter as tk
 from tkinter import ttk
 from typing import Callable, Dict
-
 from utils.service_locator import service_locator
 
 class FeaturesToggleFrame(ttk.LabelFrame):
@@ -13,11 +12,6 @@ class FeaturesToggleFrame(ttk.LabelFrame):
     def __init__(self, master, callbacks: Dict[str, Callable[[bool], None]]):
         """
         Initialise le cadre des fonctionnalités.
-
-        Args:
-            master: Le widget parent.
-            callbacks: Un dictionnaire de fonctions à appeler lorsqu'une case est cochée.
-                       Ex: {'history': on_history_toggle, 'records': on_records_toggle}
         """
         super().__init__(master)
         
@@ -26,13 +20,13 @@ class FeaturesToggleFrame(ttk.LabelFrame):
         # --- Dépendances ---
         self.language_manager = service_locator.get_service("language_manager")
         self.preference_manager = service_locator.get_service("preference_manager")
+        
+        # --- AJOUT: Import du registre ---
+        from config.app_config import OPTIONAL_TABS
+        self.optional_tabs = OPTIONAL_TABS
 
-        # --- Variables d'état ---
-        self.vars = {
-            'history': tk.BooleanVar(),
-            'records': tk.BooleanVar(),
-            'rainmeter': tk.BooleanVar()
-        }
+        # --- MODIFIÉ : Création dynamique des variables ---
+        self.vars = {tab_info["id"]: tk.BooleanVar() for tab_info in self.optional_tabs}
         
         # --- Initialisation de l'UI ---
         self._setup_widgets()
@@ -40,15 +34,16 @@ class FeaturesToggleFrame(ttk.LabelFrame):
         self.update_widget_texts()
 
     def _setup_widgets(self):
-        """Crée et positionne les widgets."""
+        """Crée et positionne les widgets dynamiquement."""
         self.columnconfigure(0, weight=1)
 
-        # Création des labels et des cases à cocher en boucle
         self.labels = {}
         checkboxes = {}
         
-        feature_keys = ['history', 'records', 'rainmeter']
-        for i, key in enumerate(feature_keys):
+        # --- MODIFIÉ : Boucle sur le registre OPTIONAL_TABS ---
+        for i, tab_info in enumerate(self.optional_tabs):
+            key = tab_info["id"]
+            
             self.labels[key] = ttk.Label(self, text="")
             self.labels[key].grid(row=i, column=0, padx=5, pady=2, sticky="w")
             
@@ -61,7 +56,7 @@ class FeaturesToggleFrame(ttk.LabelFrame):
 
         # Notice de redémarrage
         self.notice_label = ttk.Label(self, text="", style="Italic.TLabel")
-        self.notice_label.grid(row=len(feature_keys), column=0, columnspan=2, padx=5, pady=(10, 5), sticky="w")
+        self.notice_label.grid(row=len(self.optional_tabs), column=0, columnspan=2, padx=5, pady=(10, 5), sticky="w")
         ttk.Style(self).configure("Italic.TLabel", font=("Segoe UI", 9, "italic"))
 
     def _on_toggle(self, feature_key: str):
@@ -72,17 +67,22 @@ class FeaturesToggleFrame(ttk.LabelFrame):
             callback_func(new_value)
 
     def load_settings(self):
-        """Charge l'état initial des cases à cocher depuis les préférences."""
-        self.vars['history'].set(self.preference_manager.get_show_history_tab())
-        self.vars['records'].set(self.preference_manager.get_show_records_tab())
-        self.vars['rainmeter'].set(self.preference_manager.get_show_rainmeter_tab())
+        """Charge l'état initial des cases à cocher dynamiquement."""
+        for tab_info in self.optional_tabs:
+            key = tab_info["id"]
+            # On utilise la méthode générique du PreferenceManager
+            is_enabled = self.preference_manager.get_show_tab(key)
+            self.vars[key].set(is_enabled)
 
     def update_widget_texts(self):
-        """Met à jour tous les textes de ce composant."""
+        """Met à jour tous les textes de ce composant dynamiquement."""
         self.config(text=self.language_manager.get_text('features_settings_title'))
         
-        self.labels['history'].config(text=self.language_manager.get_text('show_history_tab_label'))
-        self.labels['records'].config(text=self.language_manager.get_text('show_records_tab_label'))
-        self.labels['rainmeter'].config(text=self.language_manager.get_text('show_rainmeter_tab_label'))
+        # --- MODIFIÉ : Boucle sur le registre pour mettre à jour les labels ---
+        for tab_info in self.optional_tabs:
+            key = tab_info["id"]
+            label_key = tab_info["toggle_label_key"]
+            if key in self.labels:
+                self.labels[key].config(text=self.language_manager.get_text(label_key))
         
         self.notice_label.config(text=self.language_manager.get_text('features_restart_required_notice'))

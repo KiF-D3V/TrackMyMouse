@@ -48,17 +48,23 @@ class SettingsTab(ttk.Frame):
         self.unit_frame = UnitSettingsFrame(top_frame, on_change_callback=self._on_unit_change)
         self.unit_frame.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
 
-        # --- Ligne 2: Composant pour l'affichage des onglets ---
-        # On définit les callbacks que le composant appellera
+        # Composant pour l'affichage des onglets
+        # On importe le registre pour le rendre disponible ici
+        from config.app_config import OPTIONAL_TABS
+
+        # On crée les callbacks dynamiquement en parcourant le registre
         feature_callbacks = {
-            'history': lambda value: self.preference_manager.set_show_history_tab(value),
-            'records': lambda value: self.preference_manager.set_show_records_tab(value),
-            'rainmeter': lambda value: self.preference_manager.set_show_rainmeter_tab(value)
+            tab_info["id"]: (
+                # On utilise une astuce lambda pour capturer la bonne valeur de tab_id
+                lambda value, tab_id=tab_info["id"]: 
+                self.preference_manager.set_show_tab(tab_id, value)
+            )
+            for tab_info in OPTIONAL_TABS
         }
         self.features_frame = FeaturesToggleFrame(self, callbacks=feature_callbacks)
         self.features_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=5)
 
-        # --- Ligne 3: Composant pour la configuration de l'écran ---
+        # Composant pour la configuration de l'écran ---
         self.screen_frame = ScreenConfigFrame(self, unit_var=self.unit_var, on_config_validated_callback=self._on_config_validated)
         self.screen_frame.grid(row=2, column=0, sticky="ew", padx=10, pady=5)
 

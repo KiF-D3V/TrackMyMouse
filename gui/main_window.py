@@ -4,13 +4,13 @@ import tkinter as tk
 from tkinter import ttk
 import logging
 
-# Import de tous les onglets
+# Import onglets toujours affichés
 from gui import today_tab
-from gui import history_tab
-from gui import records_tab
-from modules.rainmeter import rainmeter_tab
 from gui import settings_tab
 from gui import about_tab
+
+import importlib
+from config.app_config import OPTIONAL_TABS
 
 # Imports de configuration et du Service Locator
 from version import __version__
@@ -54,7 +54,7 @@ class MainWindow(ttk.Frame):
     def _setup_tabs(self):
         """
         Construit dynamiquement la liste des onglets à afficher
-        en fonction des préférences de l'utilisateur.
+        en lisant le registre central OPTIONAL_TABS.
         """
         self.logger.info("Configuration dynamique des onglets...")
         
@@ -63,24 +63,28 @@ class MainWindow(ttk.Frame):
         self.tabs.append({'instance': today, 'title_key': 'today_tab_title', 'default': 'Today'})
         self.today_tab = today # Garde une référence directe pour la boucle de mise à jour
 
-        # --- Onglets optionnels ---
-        if self.preference_manager.get_show_history_tab():
-            history = history_tab.HistoryTab(self.notebook)
-            self.tabs.append({'instance': history, 'title_key': 'history_tab_title', 'default': 'History'})
-            self.logger.info("Onglet 'Historique' activé.")
+        # --- MODIFIÉ : Boucle dynamique pour les onglets optionnels ---
+        for tab_info in OPTIONAL_TABS:
+            # On utilise la méthode générique pour vérifier si l'onglet doit être affiché
+            if self.preference_manager.get_show_tab(tab_info["id"]):
+                try:
+                    # Importation dynamique du module de l'onglet
+                    module = importlib.import_module(tab_info["module_path"])
+                    # Récupération de la classe de l'onglet depuis le module
+                    TabClass = getattr(module, tab_info["class_name"])
+                    # Création de l'instance de l'onglet
+                    instance = TabClass(self.notebook)
+                    
+                    self.tabs.append({
+                        'instance': instance, 
+                        'title_key': tab_info["title_key"], 
+                        'default': tab_info["id"].capitalize()
+                    })
+                    self.logger.info(f"Onglet '{tab_info['id']}' activé et chargé.")
 
-        if self.preference_manager.get_show_records_tab():
-            records = records_tab.RecordsTab(self.notebook)
-            self.tabs.append({'instance': records, 'title_key': 'records_tab_title', 'default': 'Records'})
-            self.logger.info("Onglet 'Records' activé.")
-
-        # --- AJOUT POUR RAINMETER ---
-        if self.preference_manager.get_show_rainmeter_tab():
-            rainmeter = rainmeter_tab.RainmeterTab(self.notebook)
-            self.tabs.append({'instance': rainmeter, 'title_key': 'rainmeter_tab_title', 'default': 'Rainmeter'})
-            self.logger.info("Onglet 'Rainmeter' activé.")
-        # ---------------------------        
-
+                except (ImportError, AttributeError) as e:
+                    self.logger.error(f"Impossible de charger l'onglet '{tab_info['id']}': {e}")
+        
         # --- Onglets de fin (toujours affichés) ---
         settings = settings_tab.SettingsTab(self.notebook)
         self.tabs.append({'instance': settings, 'title_key': 'settings_tab_title', 'default': 'Settings'})
