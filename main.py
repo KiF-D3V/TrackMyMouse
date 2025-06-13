@@ -11,6 +11,7 @@ from typing import Optional
 from utils.paths import get_icon_path 
 
 # Core application services and managers
+from utils.event_manager import event_manager
 from utils.service_locator import service_locator
 from managers.language_manager import LanguageManager
 from managers.stats_manager import StatsManager
@@ -75,7 +76,8 @@ class MouseTrackerApp:
 
             self.language_manager = LanguageManager() 
             service_locator.register_service("language_manager", self.language_manager)
-            
+            service_locator.register_service("event_manager", event_manager)
+
             self.stats_manager = StatsManager()
             service_locator.register_service("stats_manager", self.stats_manager)
 

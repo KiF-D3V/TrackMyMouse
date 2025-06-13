@@ -4,7 +4,7 @@ import datetime
 import time
 import threading 
 import logging 
-from pynput import mouse # type: ignore
+from pynput.mouse import Button
 from typing import Optional, List, Dict, Any 
 
 # --- AJOUT: Import des constantes de configuration ---
@@ -12,6 +12,7 @@ from config.app_config import INACTIVITY_THRESHOLD_SECONDS, ACTIVITY_TRACKER_INT
 
 from managers.preference_manager import PreferenceManager
 from utils.service_locator import service_locator
+from utils.event_manager import event_manager
 from .stats_repository import StatsRepository
 
 
@@ -29,6 +30,12 @@ class StatsManager:
         service_locator.register_service("stats_repository", self.stats_repository)
 
         self.preference_manager: PreferenceManager = service_locator.get_service("preference_manager")
+
+        # --- AJOUT : Abonnement aux événements ---
+        self.event_manager = event_manager
+        self.event_manager.subscribe('mouse_moved', self.update_mouse_position)
+        self.event_manager.subscribe('mouse_clicked', self.increment_click)
+        # -----------------------------------------
         
         self.today = datetime.date.today().isoformat()
         self.last_mouse_position: Optional[tuple[int, int]] = None
@@ -98,11 +105,11 @@ class StatsManager:
                 self._current_day_stats_in_memory['inactive_time_seconds'] += 1
         self.logger.info("Thread de suivi d'activité terminé.")
 
-    def increment_click(self, button: mouse.Button):
+    def increment_click(self, button: Button):
         """Incrémente un clic en mémoire."""
-        if button == mouse.Button.left: self._current_day_stats_in_memory['left_clicks'] += 1
-        elif button == mouse.Button.right: self._current_day_stats_in_memory['right_clicks'] += 1
-        elif button == mouse.Button.middle: self._current_day_stats_in_memory['middle_clicks'] += 1
+        if button == Button.left: self._current_day_stats_in_memory['left_clicks'] += 1
+        elif button == Button.right: self._current_day_stats_in_memory['right_clicks'] += 1
+        elif button == Button.middle: self._current_day_stats_in_memory['middle_clicks'] += 1
         self.last_activity_time = time.time()
         if not self.is_active: self.is_active = True
 
