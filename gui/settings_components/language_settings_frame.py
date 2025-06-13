@@ -69,9 +69,8 @@ class LanguageSettingsFrame(ttk.LabelFrame):
         Cette méthode est destinée à être appelée par le parent (SettingsTab)
         lors d'un changement de langue global.
         """
-        # 1. Recréer les dictionnaires de mapping avec la langue actuelle
-        self.language_display_to_code = {self.language_manager.get_text(f'language_{code}', code): code for code in self.language_codes}
-        self.language_code_to_display = {code: name for name, code in self.language_display_to_code.items()}
+        # 1. MODIFIÉ : On récupère les dictionnaires directement depuis le LanguageManager
+        self.language_display_to_code, self.language_code_to_display = self.language_manager.get_language_mappings()
 
         # 2. Mettre à jour les textes des widgets
         self.config(text=self.language_manager.get_text('language_settings'))

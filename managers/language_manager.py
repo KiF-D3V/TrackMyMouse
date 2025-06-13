@@ -22,13 +22,13 @@ class LanguageManager:
             self.logger = logging.getLogger(__name__) 
             self.logger.info("Initialisation de LanguageManager...")
             self.languages = {}
-            self.current_language = 'en' 
+            self.current_language = 'en'
+            self.language_codes = ['fr', 'en'] 
+            self.unit_codes = ['metric', 'imperial'] 
             self._load_languages()
             self._initialized = True
             self.logger.info("LanguageManager initialisé.")
 
-
-    # --- MÉTHODE CORRIGÉE (VERSION FINALE) ---
     def _load_languages(self):
         self.logger.debug("Chargement des fichiers de langue...")
         lang_dir = get_locales_path()
@@ -97,3 +97,25 @@ class LanguageManager:
             code: self.get_text(f'language_{code}', code.upper()) 
             for code in self.languages.keys()
         }
+    
+    def get_language_mappings(self) -> tuple[dict, dict]:
+        """
+        Crée et retourne les dictionnaires de mapping pour les langues.
+        
+        Returns:
+            tuple[dict, dict]: Un tuple contenant (display_to_code, code_to_display).
+        """
+        display_to_code = {self.get_text(f'language_{code}', code): code for code in self.language_codes}
+        code_to_display = {code: name for name, code in display_to_code.items()}
+        return display_to_code, code_to_display
+
+    def get_unit_mappings(self) -> tuple[dict, dict]:
+        """
+        Crée et retourne les dictionnaires de mapping pour les unités.
+        
+        Returns:
+            tuple[dict, dict]: Un tuple contenant (display_to_code, code_to_display).
+        """
+        display_to_code = {self.get_text(f'unit_{code}', code): code for code in self.unit_codes}
+        code_to_display = {code: name for name, code in display_to_code.items()}
+        return display_to_code, code_to_display

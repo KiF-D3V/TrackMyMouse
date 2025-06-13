@@ -68,9 +68,8 @@ class UnitSettingsFrame(ttk.LabelFrame):
         Met à jour tous les textes de ce composant.
         Cette méthode est destinée à être appelée par le parent (SettingsTab).
         """
-        # 1. Recréer les dictionnaires de mapping avec la langue actuelle
-        self.unit_display_to_code = {self.language_manager.get_text(f'unit_{code}', code): code for code in self.unit_codes}
-        self.unit_code_to_display = {code: name for name, code in self.unit_display_to_code.items()}
+        # 1. MODIFIÉ : On récupère les dictionnaires directement depuis le LanguageManager
+        self.unit_display_to_code, self.unit_code_to_display = self.language_manager.get_unit_mappings()
 
         # 2. Mettre à jour les textes des widgets
         self.config(text=self.language_manager.get_text('unit_settings'))
