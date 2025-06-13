@@ -4,10 +4,11 @@ import tkinter as tk
 from tkinter import ttk
 import logging
 
-# --- MODIFIÉ: Import de tous les onglets, y compris le nouveau ---
+# Import de tous les onglets
 from gui import today_tab
 from gui import history_tab
-from gui import records_tab # AJOUT
+from gui import records_tab
+from modules.rainmeter import rainmeter_tab
 from gui import settings_tab
 from gui import about_tab
 
@@ -72,6 +73,13 @@ class MainWindow(ttk.Frame):
             records = records_tab.RecordsTab(self.notebook)
             self.tabs.append({'instance': records, 'title_key': 'records_tab_title', 'default': 'Records'})
             self.logger.info("Onglet 'Records' activé.")
+
+        # --- AJOUT POUR RAINMETER ---
+        if self.preference_manager.get_show_rainmeter_tab():
+            rainmeter = rainmeter_tab.RainmeterTab(self.notebook)
+            self.tabs.append({'instance': rainmeter, 'title_key': 'rainmeter_tab_title', 'default': 'Rainmeter'})
+            self.logger.info("Onglet 'Rainmeter' activé.")
+        # ---------------------------        
 
         # --- Onglets de fin (toujours affichés) ---
         settings = settings_tab.SettingsTab(self.notebook)

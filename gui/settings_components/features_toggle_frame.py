@@ -31,7 +31,7 @@ class FeaturesToggleFrame(ttk.LabelFrame):
         self.vars = {
             'history': tk.BooleanVar(),
             'records': tk.BooleanVar(),
-            'badges': tk.BooleanVar()
+            'rainmeter': tk.BooleanVar()
         }
         
         # --- Initialisation de l'UI ---
@@ -47,7 +47,7 @@ class FeaturesToggleFrame(ttk.LabelFrame):
         self.labels = {}
         checkboxes = {}
         
-        feature_keys = ['history', 'records', 'badges']
+        feature_keys = ['history', 'records', 'rainmeter']
         for i, key in enumerate(feature_keys):
             self.labels[key] = ttk.Label(self, text="")
             self.labels[key].grid(row=i, column=0, padx=5, pady=2, sticky="w")
@@ -75,7 +75,7 @@ class FeaturesToggleFrame(ttk.LabelFrame):
         """Charge l'état initial des cases à cocher depuis les préférences."""
         self.vars['history'].set(self.preference_manager.get_show_history_tab())
         self.vars['records'].set(self.preference_manager.get_show_records_tab())
-        self.vars['badges'].set(self.preference_manager.get_show_badges_tab())
+        self.vars['rainmeter'].set(self.preference_manager.get_show_rainmeter_tab())
 
     def update_widget_texts(self):
         """Met à jour tous les textes de ce composant."""
@@ -83,6 +83,6 @@ class FeaturesToggleFrame(ttk.LabelFrame):
         
         self.labels['history'].config(text=self.language_manager.get_text('show_history_tab_label'))
         self.labels['records'].config(text=self.language_manager.get_text('show_records_tab_label'))
-        self.labels['badges'].config(text=self.language_manager.get_text('show_badges_tab_label'))
+        self.labels['rainmeter'].config(text=self.language_manager.get_text('show_rainmeter_tab_label'))
         
         self.notice_label.config(text=self.language_manager.get_text('features_restart_required_notice'))

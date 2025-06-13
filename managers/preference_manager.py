@@ -113,7 +113,7 @@ class PreferenceManager:
         features_defaults = {
             'show_history_tab': 'True',
             'show_records_tab': 'True',
-            'show_badges_tab': 'True'  # MODIFIÉ: Utilisation de "badges"
+            'show_rainmeter_tab': 'True'
         }
         for key, value in features_defaults.items():
             if key not in self.config['Features']:
@@ -228,11 +228,11 @@ class PreferenceManager:
         self.config.set('Features', 'show_records_tab', str(show))
         self.save_preferences()
 
-    def get_show_badges_tab(self) -> bool:
-        return self.config.getboolean('Features', 'show_badges_tab', fallback=True)
+    def get_show_rainmeter_tab(self) -> bool:
+        return self.config.getboolean('Features', 'show_rainmeter_tab', fallback=True)
 
-    def set_show_badges_tab(self, show: bool):
-        self.config.set('Features', 'show_badges_tab', str(show))
+    def set_show_rainmeter_tab(self, show: bool):
+        self.config.set('Features', 'show_rainmeter_tab', str(show))
         self.save_preferences()
 
     def calculate_and_set_dpi(self) -> Optional[float]:

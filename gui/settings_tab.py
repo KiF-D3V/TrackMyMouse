@@ -53,7 +53,7 @@ class SettingsTab(ttk.Frame):
         feature_callbacks = {
             'history': lambda value: self.preference_manager.set_show_history_tab(value),
             'records': lambda value: self.preference_manager.set_show_records_tab(value),
-            'badges': lambda value: self.preference_manager.set_show_badges_tab(value)
+            'rainmeter': lambda value: self.preference_manager.set_show_rainmeter_tab(value)
         }
         self.features_frame = FeaturesToggleFrame(self, callbacks=feature_callbacks)
         self.features_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=5)

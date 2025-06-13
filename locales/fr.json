@@ -16,6 +16,7 @@
     "today_tab_title": "Aujourd'hui",
     "history_tab_title": "Historique",
     "records_tab_title": "Records",
+    "rainmeter_tab_title": "Rainmeter",
     "settings_tab_title": "Paramètres",
     "about_tab_title": "À propos",
 
@@ -71,7 +72,7 @@
     "features_settings_title": "Affichage des onglets",
     "show_history_tab_label": "Afficher l'onglet Historique :",
     "show_records_tab_label": "Afficher l'onglet Records :",
-    "show_badges_tab_label": "Afficher l'onglet Badges :",
+    "show_rainmeter_tab_label": "Afficher l'onglet Rainmeter :",
     "features_restart_required_notice": "Un redémarrage est nécessaire pour appliquer ces changements.",
 
     "_FIRST_LAUNCH_DIALOG": "Textes du dialogue de premier lancement",

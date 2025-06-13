@@ -17,6 +17,7 @@
     "today_tab_title": "Today",
     "history_tab_title": "History",
     "records_tab_title": "Records",
+    "rainmeter_tab_title": "Rainmeter",
     "settings_tab_title": "Settings",
     "about_tab_title": "About",
 
@@ -71,7 +72,7 @@
     "features_settings_title": "Tab Display",
     "show_history_tab_label": "Show History tab:",
     "show_records_tab_label": "Show Records tab:",
-    "show_badges_tab_label": "Show Badges tab:",
+    "show_rainmeter_tab_label": "Show Rainmeter tab:",
     "features_restart_required_notice": "A restart is required for these changes to take effect.",
 
     "_FIRST_LAUNCH_DIALOG": "First launch dialog texts",
