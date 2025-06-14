@@ -12,6 +12,7 @@ from utils.paths import get_icon_path
 
 # Core application services and managers
 from utils.event_manager import event_manager
+from managers.activity_tracker import ActivityTracker
 from utils.service_locator import service_locator
 from managers.language_manager import LanguageManager
 from managers.stats_manager import StatsManager
@@ -81,12 +82,15 @@ class MouseTrackerApp:
             self.stats_manager = StatsManager()
             service_locator.register_service("stats_manager", self.stats_manager)
 
+            self.activity_tracker = ActivityTracker()
+            self.activity_tracker.start()
+
             self.logger.info("Services initialisés.")
         except Exception as e:
             self.logger.critical(f"Erreur critique lors de l'initialisation des services: {e}", exc_info=True)
             messagebox.showerror("Erreur Critique", f"Impossible d'initialiser les services de l'application: {e}")
             self.root.quit()
-
+            
     def _initialize_input_manager(self):
         """Initialise et démarre InputManager."""
         self.logger.info("Initialisation de InputManager...")
@@ -110,8 +114,7 @@ class MouseTrackerApp:
             
             # --- MODIFIÉ : Utilisation de get_icon_path() ---
             icon_path = get_icon_path()
-            # --- FIN DE LA MODIFICATION ---
-
+            
             self.systray_manager = SystrayManager(
                 root_tk_object=self.root,
                 app_title=app_title,
@@ -190,6 +193,7 @@ class MouseTrackerApp:
         self.logger.info("Début de l'arrêt des composants de l'application...")
         if self.main_window: self.main_window.stop_update_loop()
         if self.input_manager: self.input_manager.stop_tracking()
+        if hasattr(self, 'activity_tracker'): self.activity_tracker.stop()
         if self.stats_manager: self.stats_manager.close()
         if self.systray_manager:
             if from_systray_thread: self.systray_manager.signal_icon_to_stop()

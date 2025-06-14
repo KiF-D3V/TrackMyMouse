@@ -1,14 +1,9 @@
 # managers/stats_manager.py
 
 import datetime
-import time
-import threading 
 import logging 
 from pynput.mouse import Button
 from typing import Optional, List, Dict, Any 
-
-# --- AJOUT: Import des constantes de configuration ---
-from config.app_config import INACTIVITY_THRESHOLD_SECONDS, ACTIVITY_TRACKER_INTERVAL
 
 from managers.preference_manager import PreferenceManager
 from utils.service_locator import service_locator
@@ -35,19 +30,16 @@ class StatsManager:
         self.event_manager = event_manager
         self.event_manager.subscribe('mouse_moved', self.update_mouse_position)
         self.event_manager.subscribe('mouse_clicked', self.increment_click)
+        self.event_manager.subscribe('activity_tick', self._on_activity_tick)
+        self.event_manager.subscribe('day_changed', self._on_day_changed)
         # -----------------------------------------
         
         self.today = datetime.date.today().isoformat()
         self.last_mouse_position: Optional[tuple[int, int]] = None
-        self.last_activity_time: float = time.time()
-        self.is_active: bool = True 
-        self._stop_tracker: bool = False
-        
+                        
         self._current_day_stats_in_memory: dict = self._get_or_create_todays_entry()
         self._initialize_app_settings() 
-
-        self._activity_tracker_thread = threading.Thread(target=self._run_activity_tracker, daemon=True)
-        self._activity_tracker_thread.start()
+        
         self.logger.info("StatsManager initialisé et tracker d'activité démarré.")
 
     def _initialize_app_settings(self):
@@ -75,43 +67,32 @@ class StatsManager:
             todays_stats = self.stats_repository.get_daily_stats(self.today)
         
         return todays_stats if todays_stats else self._get_initial_daily_stats_structure()
-
-    def _run_activity_tracker(self):
-        """
-        Thread qui gère le temps d'activité/inactivité et le changement de jour.
-        """
-        self.logger.info("Thread de suivi d'activité démarré.")
-        while not self._stop_tracker:
-            # --- MODIFIÉ: Utilisation de la constante pour l'intervalle ---
-            time.sleep(ACTIVITY_TRACKER_INTERVAL) 
-            if self._stop_tracker: break
-
-            current_date = datetime.date.today().isoformat()
-            if self.today != current_date:
-                self.logger.info(f"Nouveau jour détecté: {current_date}.")
-                self.save_changes() 
-                self.today = current_date
-                self._current_day_stats_in_memory = self._get_or_create_todays_entry()
-                self.last_activity_time = time.time() 
-                self.is_active = True 
-                self.logger.info(f"Statistiques réinitialisées pour le nouveau jour: {self.today}.")
-
-            # Utilise la constante INACTIVITY_THRESHOLD_SECONDS importée
-            if (time.time() - self.last_activity_time) <= INACTIVITY_THRESHOLD_SECONDS:
-                if not self.is_active: self.is_active = True
-                self._current_day_stats_in_memory['active_time_seconds'] += 1
-            else:
-                if self.is_active: self.is_active = False
-                self._current_day_stats_in_memory['inactive_time_seconds'] += 1
-        self.logger.info("Thread de suivi d'activité terminé.")
-
+    
     def increment_click(self, button: Button):
         """Incrémente un clic en mémoire."""
         if button == Button.left: self._current_day_stats_in_memory['left_clicks'] += 1
         elif button == Button.right: self._current_day_stats_in_memory['right_clicks'] += 1
         elif button == Button.middle: self._current_day_stats_in_memory['middle_clicks'] += 1
-        self.last_activity_time = time.time()
-        if not self.is_active: self.is_active = True
+        
+    def _on_activity_tick(self, status: str):
+        """
+        Met à jour les compteurs de temps d'activité/inactivité
+        en réponse à un événement de l'ActivityTracker.
+        """
+        if status == 'active':
+            self._current_day_stats_in_memory['active_time_seconds'] += 1
+        elif status == 'inactive':
+            self._current_day_stats_in_memory['inactive_time_seconds'] += 1
+
+    def _on_day_changed(self, old_date: str, new_date: str):
+        """
+        Gère le changement de jour détecté par l'ActivityTracker.
+        Sauvegarde les stats de la veille et réinitialise pour le nouveau jour.
+        """
+        self.logger.info(f"Événement 'day_changed' reçu. Sauvegarde pour {old_date} et réinitialisation pour {new_date}.")
+        self.save_changes() 
+        self.today = new_date
+        self._current_day_stats_in_memory = self._get_or_create_todays_entry()
 
     def update_mouse_position(self, x: int, y: int):
         """Met à jour la distance en mémoire."""
@@ -120,9 +101,7 @@ class StatsManager:
             distance = ((x - last_x)**2 + (y - last_y)**2)**0.5
             self._current_day_stats_in_memory['distance_pixels'] += distance
         self.last_mouse_position = (x, y)
-        self.last_activity_time = time.time() 
-        if not self.is_active: self.is_active = True 
-
+        
     def get_todays_stats(self) -> dict:
         """Retourne les statistiques du jour courant depuis la mémoire."""
         return self._current_day_stats_in_memory
@@ -184,12 +163,7 @@ class StatsManager:
     def close(self):
         """Arrête le thread, sauvegarde les changements et ferme la connexion du repository."""
         self.logger.info("Demande de fermeture de StatsManager.")
-        self._stop_tracker = True 
-        if self._activity_tracker_thread and self._activity_tracker_thread.is_alive():
-            self.logger.info("Attente de la terminaison du thread de suivi d'activité...") 
-            self._activity_tracker_thread.join(timeout=2.0) 
-            self.logger.info("Thread de suivi d'activité terminé.")
-        
+                
         self.logger.info("Sauvegarde finale des changements avant fermeture.")
         self.save_changes() 
         self.stats_repository.close()
