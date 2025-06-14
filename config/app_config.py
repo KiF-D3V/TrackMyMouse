@@ -16,6 +16,9 @@ PREFERENCES_FILENAME = "user_preferences.ini"
 INACTIVITY_THRESHOLD_SECONDS = 2
 ACTIVITY_TRACKER_INTERVAL = 1
 
+# --- XP/Level System ---
+XP_SAVE_INTERVAL_SECONDS = 3600 # 1 heure
+
 # --- GUI (Graphical User Interface) ---
 HISTORY_DAYS_OPTIONS = [7, 14, 30]
 
