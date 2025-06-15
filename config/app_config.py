@@ -41,6 +41,14 @@ OPTIONAL_TABS = [
         "class_name": "RecordsTab"
     },
     {
+        "id": "level",
+        "title_key": "level_tab_title",
+        "preference_key": "show_level_tab",
+        "toggle_label_key": "show_level_tab_label",
+        "module_path": "modules.level.level_tab",
+        "class_name": "LevelTab"
+    },
+    {
         "id": "rainmeter",
         "title_key": "rainmeter_tab_title",
         "preference_key": "show_rainmeter_tab",

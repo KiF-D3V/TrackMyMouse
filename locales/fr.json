@@ -16,6 +16,7 @@
     "today_tab_title": "Aujourd'hui",
     "history_tab_title": "Historique",
     "records_tab_title": "Records",
+    "level_tab_title": "Niveau",
     "rainmeter_tab_title": "Rainmeter",
     "settings_tab_title": "Paramètres",
     "about_tab_title": "À propos",
@@ -110,5 +111,10 @@
     "record_distance_label": "Record de distance",
     "record_activity_label": "Record d'activité",
     "no_record_yet": "Aucun record",
-    "on_date": "le"
+    "on_date": "le",
+
+    "_LEVEL_TAB": "Textes pour l'onglet et la section des Niveaux",
+    "level_tab_title": "Niveau",
+    "show_level_tab_label": "Afficher l'onglet Niveau",
+    "level_label_text": "Niveau"
 }
