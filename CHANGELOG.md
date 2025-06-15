@@ -2,6 +2,23 @@
 
 Toutes les modifications notables apportées à ce projet seront documentées dans ce fichier.
 
+## [0.6.0] - 2025-06-15
+
+### Added
+- **Module gamification Niveau/XP :** Ajout d'un onglet 'Niveau' pour consulter le nombre d'XP ainsi que le Niveau actuel.
+- **Onglet Niveau optionnel :** Intégration de l'onglet comme un onglet optionnel "data-driven" via le registre OPTIONAL_TABS
+- **Utilitaires :** Création d'un nouveau fichier utils/math_utils.py avec une fonction calculate_distance pour centraliser le calcul de distance (principe DRY).
+- **Evénements :** Le XPManager publie maintenant un nouvel événement level_up lors d'un passage de niveau.
+
+### Changed
+- **Architecture UI :** La boucle de rafraîchissement de MainWindow a été rendue générique. Elle peut maintenant mettre à jour n'importe quel onglet actif qui possède une méthode update_display..
+- **Harmonisation :** La méthode de mise à jour de TodayTab a été renommée update_display pour plus de cohérence.
+- **Refactorisation :** Le StatsManager utilise maintenant la fonction utilitaire partagée calculate_distance.
+
+### Fixed
+- **Correction d'erreurs :** Correction de nombreuses erreurs de démarrage (ImportError, TypeError, AttributeError) découvertes et résolues pendant le processus de développement du module Niveau.
+
+
 ## [0.5.0] - 2025-06-09
 
 ### Added
