@@ -5,6 +5,7 @@ import logging
 from pynput.mouse import Button
 from typing import Optional, List, Dict, Any 
 
+from utils.math_utils import calculate_distance
 from managers.preference_manager import PreferenceManager
 from utils.service_locator import service_locator
 from utils.event_manager import event_manager
@@ -95,11 +96,14 @@ class StatsManager:
         self._current_day_stats_in_memory = self._get_or_create_todays_entry()
 
     def update_mouse_position(self, x: int, y: int):
-        """Met à jour la distance en mémoire."""
+        """Met à jour la distance en mémoire en utilisant l'outil de calcul."""
+        # --- MODIFIÉ : Remplacement du calcul manuel par l'appel à l'outil ---
         if self.last_mouse_position:
-            last_x, last_y = self.last_mouse_position
-            distance = ((x - last_x)**2 + (y - last_y)**2)**0.5
+            # On passe les deux points (l'ancien et le nouveau) à notre fonction utilitaire
+            distance = calculate_distance(self.last_mouse_position, (x, y))
             self._current_day_stats_in_memory['distance_pixels'] += distance
+        
+        # On met à jour la dernière position connue
         self.last_mouse_position = (x, y)
         
     def get_todays_stats(self) -> dict:

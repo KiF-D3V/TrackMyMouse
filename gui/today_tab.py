@@ -57,7 +57,7 @@ class TodayTab(ttk.Frame):
         self.activity_global_label.pack(padx=10, pady=(5, 10), fill='x')
         self.logger.debug("Widgets de l'onglet 'Aujourd'hui' créés.")
 
-    def update_stats_display(self):
+    def update_display(self):
         """
         Met à jour toutes les étiquettes de statistiques de l'onglet
         en récupérant les données les plus récentes.
@@ -165,4 +165,4 @@ class TodayTab(ttk.Frame):
         Ici, il suffit de relancer la mise à jour complète des statistiques.
         """
         self.logger.debug("Mise à jour des textes des widgets pour l'onglet 'Aujourd'hui'.")
-        self.update_stats_display()
+        self.update_display()

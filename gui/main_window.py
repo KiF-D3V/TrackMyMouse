@@ -128,14 +128,25 @@ class MainWindow(ttk.Frame):
 
     def update_stats_display_loop(self):
         """
-        Boucle périodique qui demande à l'onglet 'Aujourd'hui' de
-        mettre à jour son affichage des statistiques.
+        Boucle périodique qui demande à l'onglet ACTIF de mettre à jour son affichage,
+        s'il possède une méthode 'update_display'.
         """
         if self._running_update_loop:
-            # La boucle ne concerne que l'onglet 'Aujourd'hui' qui affiche des données temps réel
-            if hasattr(self, 'today_tab'):
-                self.today_tab.update_stats_display()
-            self.master.after(1000, self.update_stats_display_loop)
+            try:
+                # 1. Identifier l'onglet actuellement sélectionné
+                selected_tab_widget = self.notebook.nametowidget(self.notebook.select())
+
+                # 2. Vérifier si cet onglet a une méthode 'update_display'
+                if hasattr(selected_tab_widget, 'update_display'):
+                    # 3. Si oui, l'appeler. Cela fonctionnera pour TodayTab, LevelTab, etc.
+                    selected_tab_widget.update_display()
+
+            except tk.TclError:
+                # Peut se produire si aucun onglet n'est sélectionné, etc. C'est sans danger.
+                pass
+            finally:
+                # On replanifie le prochain appel dans tous les cas
+                self.master.after(1000, self.update_stats_display_loop)
         else:
             self.logger.info("Boucle de mise à jour de l'affichage arrêtée.")
 
