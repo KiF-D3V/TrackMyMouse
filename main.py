@@ -19,6 +19,7 @@ from managers.stats_manager import StatsManager
 from managers.preference_manager import PreferenceManager
 from managers.input_manager import InputManager
 from managers.systray_manager import SystrayManager
+from modules.level.xp_manager import XPManager
 
 # GUI components
 from gui.main_window import MainWindow
@@ -49,6 +50,7 @@ class MouseTrackerApp:
         self.preference_manager: Optional[PreferenceManager] = None
         self.input_manager: Optional[InputManager] = None
         self.systray_manager: Optional[SystrayManager] = None
+        self.xp_manager: Optional[XPManager] = None
 
         self._initialize_services()
         self._initialize_input_manager()
@@ -81,6 +83,13 @@ class MouseTrackerApp:
 
             self.stats_manager = StatsManager()
             service_locator.register_service("stats_manager", self.stats_manager)
+
+            # --- CORRECTION ---
+            # La ligne suivante était manquante. Elle est essentielle pour créer l'objet XPManager.
+            self.xp_manager = XPManager(event_manager)
+            
+            service_locator.register_service("xp_manager", self.xp_manager)
+            self.xp_manager.start()
 
             self.activity_tracker = ActivityTracker()
             self.activity_tracker.start()
@@ -194,6 +203,7 @@ class MouseTrackerApp:
         if self.main_window: self.main_window.stop_update_loop()
         if self.input_manager: self.input_manager.stop_tracking()
         if hasattr(self, 'activity_tracker'): self.activity_tracker.stop()
+        if self.xp_manager: self.xp_manager.stop()
         if self.stats_manager: self.stats_manager.close()
         if self.systray_manager:
             if from_systray_thread: self.systray_manager.signal_icon_to_stop()

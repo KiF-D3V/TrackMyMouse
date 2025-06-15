@@ -1,6 +1,11 @@
 {
+  "_comment_scaling_factor": "Définit la 'précision' du système. Ici, 10 000 'pts' valent 1 'XP'. Ce système de pts entiers évite les erreurs de calcul avec des nombres à virgule.",
   "xp_unit_scaling_factor": 10000,
-  
+
+  "_comment_pixel_threshold": "Seuil de performance. Les pts pour la distance sont attribués par tranches de X pixels (ici, 1000) pour ne pas surcharger le système à chaque pixel parcouru.",
+  "pixel_award_threshold": 1000,
+
+  "_comment_gain_rates": "Définit le nombre de 'pts' (et non d'XP final) gagnés par chaque type d'action.",
   "xp_gain_rates_scaled": {
     "per_pixel": 1,
     "per_left_click": 500,
@@ -8,7 +13,8 @@
     "per_middle_click": 2000,
     "per_active_second": 30
   },
-  
+
+  "_comment_leveling_formula": "Paramètres pour la formule de calcul des niveaux : XP requis = base_xp * (niveau_actuel ^ exponent).",
   "leveling_formula": {
     "type": "exponential",
     "base_xp": 100,
