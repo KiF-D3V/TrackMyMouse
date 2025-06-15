@@ -6,7 +6,7 @@ from threading import Timer
 from typing import Optional
 from pynput.mouse import Button
 
-from utils.paths import get_project_root
+from utils.paths import resource_path
 from utils.math_utils import calculate_distance
 from modules.level.xp_repository import XPRepository
 from config.app_config import XP_SAVE_INTERVAL_SECONDS
@@ -34,7 +34,8 @@ class XPManager:
 
     def _load_config(self):
         """Charge la configuration depuis xp_config.json."""
-        config_path = os.path.join(get_project_root(), "modules", "level", "xp_config.json")
+        relative_path_to_config = os.path.join("modules", "level", "xp_config.json")
+        config_path = resource_path(relative_path_to_config)
         with open(config_path, 'r') as f:
             self.config = json.load(f)
 
