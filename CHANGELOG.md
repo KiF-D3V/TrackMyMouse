@@ -2,6 +2,13 @@
 
 Toutes les modifications notables apportées à ce projet seront documentées dans ce fichier.
 
+## [0.6.1] - 2025-06-16
+
+### Fixed
+- **Démarrage :** Correction d'un problème qui pouvait empêcher l'application de démarrer correctement après son installation.
+- **Onglets :** Correction des onglets qui ne s'affichaient pas au démarrage. L'affichage des onglets est maintenant plus fluide et plus fiable.
+
+
 ## [0.6.0] - 2025-06-15
 
 ### Added
