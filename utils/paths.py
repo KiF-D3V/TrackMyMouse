@@ -40,6 +40,14 @@ def get_user_config_dir() -> str:
     os.makedirs(config_dir, exist_ok=True)
     return config_dir
 
+def get_project_root() -> str:
+    """
+    Retourne le chemin absolu de la racine du projet.
+    Utile en mode développement pour trouver des fichiers de configuration à la racine.
+    """
+    # Cette logique remonte d'un niveau depuis le dossier 'utils' où ce fichier se trouve.
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
 # --- Fonctions d'assistance pour obtenir des chemins de fichiers spécifiques ---
 
 def get_db_path() -> str:
