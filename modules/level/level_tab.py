@@ -2,6 +2,7 @@
 
 import tkinter as tk
 from tkinter import ttk
+import logging
 from utils.service_locator import service_locator
 
 class LevelTab(ttk.Frame):
@@ -10,6 +11,8 @@ class LevelTab(ttk.Frame):
     """
     def __init__(self, parent, **kwargs):
         super().__init__(parent, **kwargs)
+
+        self.logger = logging.getLogger(__name__)
 
         # Récupération des managers via le service locator
         self.language_manager = service_locator.get_service("language_manager")
@@ -25,7 +28,7 @@ class LevelTab(ttk.Frame):
         self._create_widgets()
         
     def _create_widgets(self):
-        """Crée et positionne tous les widgets de l'onglet selon la disposition finale."""
+        """Crée et positionne tous les widgets de l'onglet avec un style personnalisé."""
         # --- Configuration de la grille pour centrer le contenu verticalement ---
         self.grid_rowconfigure(0, weight=1)
         self.grid_rowconfigure(4, weight=1)
@@ -35,14 +38,31 @@ class LevelTab(ttk.Frame):
         self.level_var = tk.StringVar(value="...")
         self.xp_var = tk.StringVar(value="... / ... XP")
 
-        # --- Création des widgets ---
+        # --- Définition des styles personnalisés ---
+        style = ttk.Style()
         
-        # Label pour le CHIFFRE du niveau (grande police, en gras)
-        level_number_label = ttk.Label(self, textvariable=self.level_var, font=("Segoe UI", 48, "bold"), anchor="center")
-        level_number_label.grid(row=1, column=0, sticky="ew")
+        # Style pour le chiffre du niveau
+        style.configure("LevelNumber.TLabel", 
+                        foreground="#007bff", 
+                        font=("Segoe UI", 80, "bold"))
+        
+        # Style pour la barre de progression (barre verte, fond gris clair)
+        # Note: 'background' est la couleur de la barre, 'troughcolor' est le fond.
+        style.configure("Level.Horizontal.TProgressbar", 
+                        troughcolor='#EAECEE', 
+                        background='#28a745',
+                        bordercolor='#c8c8c8',
+                        lightcolor='#28a745',
+                        darkcolor='#28a745')
 
-        # Barre de progression
-        self.progress_bar = ttk.Progressbar(self, orient="horizontal", length=300, mode="determinate")
+        # --- Création et positionnement des widgets réels ---
+        
+        # Label pour le CHIFFRE du niveau, avec le style personnalisé
+        level_number_label = ttk.Label(self, textvariable=self.level_var, style="LevelNumber.TLabel")
+        level_number_label.grid(row=1, column=0, pady=(0, 10))
+
+        # Barre de progression, avec le style personnalisé
+        self.progress_bar = ttk.Progressbar(self, orient="horizontal", length=300, mode="determinate", style="Level.Horizontal.TProgressbar")
         self.progress_bar.grid(row=2, column=0, padx=50, pady=15, sticky="ew")
 
         # Label pour le texte d'XP
@@ -53,6 +73,7 @@ class LevelTab(ttk.Frame):
         """
         Met à jour les widgets de l'onglet avec les dernières données de XPManager.
         """
+        self.logger.debug("Mise à jour de l'affichage de l'onglet Niveau.")
         if not self.xp_manager:
             return
 
@@ -72,7 +93,7 @@ class LevelTab(ttk.Frame):
         Callback pour l'événement 'level_up'.
         """
         # À FAIRE : Gérer l'affichage d'une notification de level up
-        print(f"LevelTab a reçu l'événement level_up ! Nouveau niveau : {new_level}")
+        self.logger.info(f"Événement 'level_up' reçu. Nouveau niveau : {new_level}")
         self.update_display()
 
     def on_language_change(self):
