@@ -1,0 +1,73 @@
+{
+    "version": 1,
+    "disable_existing_loggers": false,
+
+    "formatters": {
+        "default": {
+            "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            "datefmt": "%Y-%m-%d %H:%M:%S"
+        }
+    },
+
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "default",
+            "level": "DEBUG",
+            "stream": "ext://sys.stdout"
+        }
+    },
+
+    "loggers": {
+        "__main__": {
+            "level": "INFO",
+            "handlers": ["console"],
+            "propagate": false
+        },
+        "managers.activity_tracker": {
+            "level": "DEBUG",
+            "handlers": ["console"],
+            "propagate": false             
+        },
+         "managers.input_manager": {
+            "level": "INFO",
+            "handlers": ["console"],
+            "propagate": false 
+        },
+        "managers.language_manager": {
+            "level": "INFO",
+            "handlers": ["console"],
+            "propagate": false 
+        },
+        "managers.preference_manager": {
+            "level": "INFO",
+            "handlers": ["console"],
+            "propagate": false
+        },
+        "managers.stats_manager": {
+            "level": "INFO",
+            "handlers": ["console"],
+            "propagate": false 
+        },
+        "modules.level.level_tab": {
+            "level": "INFO",
+            "handlers": ["console"],
+            "propagate": false 
+        },
+        "modules.level.xp_manager": {
+            "level": "DEBUG",
+            "handlers": ["console"],
+            "propagate": false 
+        },
+        "utils.event_manager": {
+            "level": "INFO",
+            "handlers": ["console"],
+            "propagate": false 
+        }
+    },
+
+    "root": {
+        "level": "INFO",
+        "handlers": ["console"]
+    }
+}

@@ -5,9 +5,11 @@ import time
 import datetime
 import logging
 
-from utils.service_locator import service_locator
 from utils.event_manager import event_manager
 from config.app_config import INACTIVITY_THRESHOLD_SECONDS, ACTIVITY_TRACKER_INTERVAL
+
+# --- MODIFICATION : Logger au niveau du module pour la cohérence ---
+logger = logging.getLogger(__name__)
 
 class ActivityTracker(threading.Thread):
     """
@@ -16,8 +18,7 @@ class ActivityTracker(threading.Thread):
     """
     def __init__(self):
         super().__init__(daemon=True)
-        self.logger = logging.getLogger(self.__class__.__name__)
-        
+                
         # Dépendances
         self.event_manager = event_manager
         
@@ -29,7 +30,7 @@ class ActivityTracker(threading.Thread):
         # Le tracker s'abonne lui-même aux événements de la souris pour savoir quand l'utilisateur est actif
         self.event_manager.subscribe('mouse_moved', self._update_last_activity_time)
         self.event_manager.subscribe('mouse_clicked', self._update_last_activity_time)
-        self.logger.info("ActivityTracker initialisé et abonné aux événements de la souris.")
+        logger.info("ActivityTracker initialisé et abonné aux événements de la souris.")
 
     def _update_last_activity_time(self, *args, **kwargs):
         """Met à jour le temps de la dernière activité détectée."""
@@ -40,12 +41,12 @@ class ActivityTracker(threading.Thread):
         Boucle principale du thread.
         S'exécute toutes les secondes pour vérifier l'état d'activité et la date.
         """
-        self.logger.info("Le thread du ActivityTracker démarre.")
+        logger.info("Le thread du ActivityTracker démarre.")
         while not self._stop_event.is_set():
             # Vérifie le changement de jour
             current_date = datetime.date.today().isoformat()
             if self.today != current_date:
-                self.logger.info(f"Nouveau jour détecté: de {self.today} à {current_date}")
+                logger.info(f"Nouveau jour détecté: de {self.today} à {current_date}")
                 self.event_manager.publish('day_changed', old_date=self.today, new_date=current_date)
                 self.today = current_date
                 self._update_last_activity_time() # Réinitialise le timer d'activité
@@ -61,9 +62,9 @@ class ActivityTracker(threading.Thread):
             # Attend l'intervalle défini avant la prochaine vérification
             self._stop_event.wait(ACTIVITY_TRACKER_INTERVAL)
             
-        self.logger.info("Le thread du ActivityTracker s'est arrêté proprement.")
+        logger.info("Le thread du ActivityTracker s'est arrêté proprement.")
 
     def stop(self):
         """Signale au thread de s'arrêter."""
-        self.logger.info("Demande d'arrêt du ActivityTracker.")
+        logger.info("Demande d'arrêt du ActivityTracker.")
         self._stop_event.set()

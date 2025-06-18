@@ -29,8 +29,8 @@ class StatsManager:
 
         # --- AJOUT : Abonnement aux événements ---
         self.event_manager = event_manager
-        self.event_manager.subscribe('mouse_moved', self.update_mouse_position)
-        self.event_manager.subscribe('mouse_clicked', self.increment_click)
+        self.event_manager.subscribe('mouse_moved', self._on_mouse_moved)
+        self.event_manager.subscribe('mouse_clicked', self._on_mouse_clicked)
         self.event_manager.subscribe('activity_tick', self._on_activity_tick)
         self.event_manager.subscribe('day_changed', self._on_day_changed)
         # -----------------------------------------
@@ -69,7 +69,7 @@ class StatsManager:
         
         return todays_stats if todays_stats else self._get_initial_daily_stats_structure()
     
-    def increment_click(self, button: Button):
+    def _on_mouse_clicked(self, button: Button, **kwargs):
         """Incrémente un clic en mémoire."""
         if button == Button.left: self._current_day_stats_in_memory['left_clicks'] += 1
         elif button == Button.right: self._current_day_stats_in_memory['right_clicks'] += 1
@@ -95,7 +95,7 @@ class StatsManager:
         self.today = new_date
         self._current_day_stats_in_memory = self._get_or_create_todays_entry()
 
-    def update_mouse_position(self, x: int, y: int):
+    def _on_mouse_moved(self, x: int, y: int, **kwargs):
         """Met à jour la distance en mémoire en utilisant l'outil de calcul."""
         # --- MODIFIÉ : Remplacement du calcul manuel par l'appel à l'outil ---
         if self.last_mouse_position:

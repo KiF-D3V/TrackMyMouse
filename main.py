@@ -9,6 +9,7 @@ from typing import Optional
 
 # --- MODIFIÉ : Import des nouvelles fonctions de gestion de chemin ---
 from utils.paths import get_icon_path 
+from utils.logging_setup import setup_logging
 
 # Core application services and managers
 from utils.event_manager import event_manager
@@ -84,7 +85,6 @@ class MouseTrackerApp:
             self.stats_manager = StatsManager()
             service_locator.register_service("stats_manager", self.stats_manager)
 
-            # --- CORRECTION ---
             # La ligne suivante était manquante. Elle est essentielle pour créer l'objet XPManager.
             self.xp_manager = XPManager(event_manager)
             
@@ -248,16 +248,10 @@ class MouseTrackerApp:
                 self.logger.info("Fermeture annulée par l'utilisateur.")
 
 if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format="%(asctime)s - %(threadName)s - %(name)s - %(levelname)s - %(module)s:%(lineno)d - %(message)s",
-    )
-    
-    logging.getLogger('gui.main_window').setLevel(logging.INFO)
-    logging.getLogger('managers.stats_manager').setLevel(logging.INFO)
-    logging.getLogger('gui.history_tab').setLevel(logging.INFO)
-    logging.getLogger('managers.stats_repository').setLevel(logging.INFO)
 
+    # --- AJOUT : Configuration centralisée du logging ---
+    setup_logging()
+    
     main_logger = logging.getLogger(__name__)
     main_logger.info("Démarrage application TrackMyMouse (__main__).")
 

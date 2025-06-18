@@ -2,6 +2,7 @@
 
 import os
 import json
+import logging
 from threading import Timer
 from typing import Optional
 from pynput.mouse import Button
@@ -17,6 +18,7 @@ class XPManager:
     """
     def __init__(self, event_manager):
         self._event_manager = event_manager
+        self.logger = logging.getLogger(__name__)
         self._repository = XPRepository()
         self._load_config()
         
@@ -46,7 +48,7 @@ class XPManager:
         self._event_manager.subscribe('activity_tick', self._on_activity_tick)
         
         self._schedule_next_save()
-        print("XPManager started.")
+        self.logger.info("XPManager démarré.")
 
     def stop(self):
         """Arrête le manager : sauvegarde finale et arrêt du timer."""
@@ -54,7 +56,7 @@ class XPManager:
             self._save_timer.cancel()
         self.save_progress()
         self._repository.close()
-        print("XPManager stopped.")
+        self.logger.info("XPManager arrêté.")
 
     def save_progress(self):
         """Sauvegarde la progression actuelle dans la base de données."""
@@ -88,11 +90,10 @@ class XPManager:
             points_to_add = int(self.accumulated_pixels) * self.config['xp_gain_rates_scaled']['per_pixel']
             self.total_points += points_to_add
             self.accumulated_pixels = 0.0
-            
-            print(f"Mouvement: +{points_to_add} points. Total = {self.total_points}") # Optionnel
-            self._check_for_level_up()
 
-    # Dans la classe XPManager
+            self.logger.debug(f"Mouvement: +{points_to_add} points. Total = {self.total_points}")
+            
+            self._check_for_level_up()
 
     def _on_mouse_clicked(self, button: Button, **kwargs):
         """Appelée par l'EventManager lors d'un clic de souris."""
@@ -106,9 +107,8 @@ class XPManager:
         if config_key:
             points_to_add = self.config['xp_gain_rates_scaled'].get(config_key, 0)
             self.total_points += points_to_add
-            
-            # --- VÉRIFIEZ QUE CETTE LIGNE EST BIEN PRÉSENTE ET ACTIVE ---
-            print(f"Clic '{button.name}': +{points_to_add} points. Total = {self.total_points}")
+                        
+            self.logger.debug(f"Clic '{button.name}': +{points_to_add} points. Total = {self.total_points}")
 
             self._check_for_level_up()
 
@@ -185,13 +185,13 @@ class XPManager:
     def _initialize_level(self):
         """Calcule le niveau de départ de l'utilisateur sans déclencher d'événement."""
         self.current_level = self._get_level_from_points(self.total_points)
-        print(f"Niveau initial de l'utilisateur : {self.current_level}")
+        self.logger.info(f"Niveau initial de l'utilisateur : {self.current_level}")
 
     def _check_for_level_up(self):
         """Vérifie si le total de points actuel résulte en un changement de niveau."""
         calculated_level = self._get_level_from_points(self.total_points)
 
         if calculated_level > self.current_level:
-            print(f"BRAVO ! Vous êtes passé du niveau {self.current_level} au niveau {calculated_level} !")
+            self.logger.info(f"BRAVO ! Vous êtes passé du niveau {self.current_level} au niveau {calculated_level} !")
             self.current_level = calculated_level
             self._event_manager.publish('level_up', new_level=self.current_level)

@@ -4,9 +4,13 @@ import configparser
 import os
 import screeninfo 
 import datetime
+import logging
 from typing import Optional
 from utils.paths import get_preferences_path
 from config.app_config import OPTIONAL_TABS
+
+# --- AJOUT : Logger au niveau du module ---
+logger = logging.getLogger(__name__)
 
 class PreferenceManager:
     """
@@ -23,11 +27,13 @@ class PreferenceManager:
 
     def __init__(self):
         if not self._initialized:
+            logger.info("Initialisation de PreferenceManager...")
             self.config = configparser.ConfigParser()
             self.full_config_path = get_preferences_path()
             self._ensure_config_file_exists()
             self.load_preferences()
             self._initialized = True
+            logger.info("PreferenceManager initialisé.")
 
     def _ensure_config_file_exists(self):
         """
@@ -35,11 +41,13 @@ class PreferenceManager:
         Met également à jour les configurations existantes avec les nouvelles clés par défaut si elles sont manquantes.
         """
         if not os.path.exists(self.full_config_path):
+            logger.info(f"Fichier de configuration introuvable. Création d'un nouveau fichier à : {self.full_config_path}")
             self._set_default_preferences()
             self.save_preferences()
         else:
             self.load_preferences() 
             if self._add_missing_default_preferences():
+                logger.info("Préférences par défaut manquantes ajoutées au fichier de configuration.")
                 self.save_preferences()
 
     def _generate_first_launch_date_string(self) -> str:
@@ -48,6 +56,7 @@ class PreferenceManager:
 
     def _set_default_preferences(self):
         """Définit les préférences par défaut pour un nouveau fichier de configuration."""
+        logger.debug("Définition des préférences par défaut.")
         self.config['General'] = {
             'language': 'en',
             'distance_unit': 'metric',
@@ -125,10 +134,12 @@ class PreferenceManager:
     def load_preferences(self):
         """Charge les préférences depuis le fichier INI."""
         if os.path.exists(self.full_config_path):
+            logger.debug(f"Chargement des préférences depuis {self.full_config_path}")
             self.config.read(self.full_config_path)
 
     def save_preferences(self):
         """Sauvegarde les préférences actuelles dans le fichier INI."""
+        logger.debug(f"Sauvegarde des préférences dans {self.full_config_path}")
         with open(self.full_config_path, 'w') as configfile:
             self.config.write(configfile)
 
@@ -238,10 +249,10 @@ class PreferenceManager:
         try:
             monitors = screeninfo.get_monitors()
             if not monitors:
-                print("Warning: No monitor detected for DPI calculation.") 
+                logger.warning("Aucun moniteur détecté pour le calcul du DPI.")
                 return None
         except screeninfo.common.ScreenInfoError as e:
-            print(f"Warning: Could not get monitor info for DPI calculation: {e}")
+            logger.warning(f"Impossible d'obtenir les informations du moniteur pour le calcul du DPI : {e}")
             return None
 
         current_monitor = monitors[0] 
@@ -256,14 +267,15 @@ class PreferenceManager:
             px_height = current_monitor.height if hasattr(current_monitor, 'height') and isinstance(current_monitor.height, int) else 1080
 
             if physical_width_inches == 0 or physical_height_inches == 0:
-                print("Warning: Physical screen dimensions in inches are zero, cannot calculate DPI.")
+                logger.warning("Les dimensions physiques de l'écran en pouces sont nulles, impossible de calculer le DPI.")
                 return None
 
             dpi_x = px_width / physical_width_inches
             dpi_y = px_height / physical_height_inches
             calculated_dpi = (dpi_x + dpi_y) / 2
+            logger.info(f"DPI calculé avec succès : {calculated_dpi:.2f}")
             self.set_dpi(calculated_dpi)
             return calculated_dpi
         else:
-            print("Warning: Physical screen dimensions not defined or invalid for DPI calculation.")
+            logger.warning("Dimensions physiques de l'écran non définies ou invalides pour le calcul du DPI.")
             return None

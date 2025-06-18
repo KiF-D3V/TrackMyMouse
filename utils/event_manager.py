@@ -1,7 +1,11 @@
 # utils/event_manager.py
 
+import logging
 from collections import defaultdict
 from typing import Callable, Dict, List, Any
+
+# --- AJOUT : Logger au niveau du module ---
+logger = logging.getLogger(__name__)
 
 class EventManager:
     """
@@ -40,7 +44,11 @@ class EventManager:
                     callback(*args, **kwargs)
                 except Exception as e:
                     # Log l'erreur mais continue d'appeler les autres abonnés
-                    print(f"Erreur lors de l'appel du callback pour l'événement '{event_name}': {e}")
+                    # exc_info=True inclut automatiquement les détails de l'erreur dans le log
+                    logger.error(
+                        f"Erreur lors de l'appel du callback '{callback.__name__}' pour l'événement '{event_name}'", 
+                        exc_info=True
+                    )
 
 # Instance unique du gestionnaire d'événements pour toute l'application
 event_manager = EventManager()
