@@ -2,16 +2,19 @@
 
 import tkinter as tk
 from tkinter import ttk, messagebox
+from utils.service_locator import service_locator
 import logging
 
-class FirstLaunchDialog:
-    def __init__(self, parent, language_manager, preference_manager):
-        self.logger = logging.getLogger(self.__class__.__name__)
-        self.logger.info("Initialisation de FirstLaunchDialog...")
-        self.parent = parent
-        self.language_manager = language_manager
-        self.preference_manager = preference_manager
+logger = logging.getLogger(__name__)
 
+class FirstLaunchDialog:
+    def __init__(self, parent):
+        logger.info("Initialisation de FirstLaunchDialog...")
+        self.parent = parent
+
+        self.config_manager = service_locator.get_service("config_manager")
+        self.language_manager = service_locator.get_service("language_manager")
+        
         self.top = tk.Toplevel(self.parent)
         # self.top.transient(self.parent) # Commenté pour assurer la visibilité
         self.top.resizable(False, False)
@@ -23,9 +26,8 @@ class FirstLaunchDialog:
         self.unit_var = tk.StringVar(self.top)
         
         # Initialiser les variables avec les préférences actuelles
-        self.language_var.set(self.preference_manager.get_language())
-        self.unit_var.set(self.preference_manager.get_distance_unit() if self.preference_manager.get_distance_unit() in ['metric', 'imperial'] else 'metric')
-
+        self.language_var.set(self.config_manager.get_language())
+        self.unit_var.set(self.config_manager.get_distance_unit())
 
         self.setup_ui() # Configure l'interface utilisateur
         self._update_dialog_texts() # Met à jour les textes avec la langue initiale
@@ -42,15 +44,15 @@ class FirstLaunchDialog:
         
         is_mapped = self.top.winfo_ismapped()
         is_viewable = self.top.winfo_viewable()
-        self.logger.debug(f"État final du dialogue au lancement - ismapped: {is_mapped}, isviewable: {is_viewable}")
-        self.logger.info("FirstLaunchDialog initialisé, centré et modal.")
+        logger.debug(f"État final du dialogue au lancement - ismapped: {is_mapped}, isviewable: {is_viewable}")
+        logger.info("FirstLaunchDialog initialisé, centré et modal.")
 
     def _center_dialog(self):
         """Calcule les dimensions et centre le dialogue."""
         self.top.update_idletasks() 
         req_width = self.top.winfo_reqwidth()
         req_height = self.top.winfo_reqheight()
-        self.logger.debug(f"Dimensions requises calculées: {req_width}x{req_height}")
+        logger.debug(f"Dimensions requises calculées: {req_width}x{req_height}")
 
         min_width = 380 
         # Augmenter min_height pour accommoder le nouveau cadre de langue
@@ -65,7 +67,7 @@ class FirstLaunchDialog:
         y = (screen_height // 2) - (final_height // 2)
 
         self.top.geometry(f'{final_width}x{final_height}+{x}+{y}')
-        self.logger.debug(f"Géométrie du dialogue définie à: {final_width}x{final_height}+{x}+{y}")
+        logger.debug(f"Géométrie du dialogue définie à: {final_width}x{final_height}+{x}+{y}")
         
         # Assurer que le dialogue est visible
         self.top.deiconify()
@@ -119,11 +121,11 @@ class FirstLaunchDialog:
         
         self.validate_button = ttk.Button(self.main_frame, command=self.validate_and_save) # Texte sera mis par _update_dialog_texts
         self.validate_button.pack(pady=15)
-        self.logger.debug("Structure UI du dialogue configurée (textes à mettre à jour).")
+        logger.debug("Structure UI du dialogue configurée (textes à mettre à jour).")
 
     def _update_dialog_texts(self):
         """Met à jour tous les textes traduisibles du dialogue."""
-        self.logger.debug(f"Mise à jour des textes du dialogue pour la langue : {self.language_manager.get_current_language()}")
+        logger.debug(f"Mise à jour des textes du dialogue pour la langue : {self.language_manager.get_current_language()}")
         self.top.title(self.language_manager.get_text('first_launch_dialog_title', 'First Launch Setup'))
         self.welcome_label.config(text=self.language_manager.get_text('welcome_message', 'Welcome to Mouse Tracker!'))
         self.prompt_label.config(text=self.language_manager.get_text('first_launch_prompt', "To accurately track your mouse distance, please provide your screen's physical dimensions."))
@@ -142,12 +144,12 @@ class FirstLaunchDialog:
         
         # Mettre à jour les labels de dimension car les textes (cm/inches) peuvent dépendre de la langue
         self.update_dimension_labels()
-        self.logger.debug("Textes du dialogue mis à jour.")
+        logger.debug("Textes du dialogue mis à jour.")
 
     def _on_language_changed(self):
         """Appelé lorsque la sélection de la langue change."""
         selected_lang_code = self.language_var.get()
-        self.logger.info(f"Langue sélectionnée dans le dialogue: {selected_lang_code}")
+        logger.info(f"Langue sélectionnée dans le dialogue: {selected_lang_code}")
         self.language_manager.set_language(selected_lang_code)
         # Mettre à jour les textes du dialogue pour refléter la nouvelle langue
         self._update_dialog_texts()
@@ -162,24 +164,24 @@ class FirstLaunchDialog:
         else: # imperial
             self.width_label.config(text=self.language_manager.get_text('physical_width_label_inches', 'Width (inches):'))
             self.height_label.config(text=self.language_manager.get_text('physical_height_label_inches', 'Height (inches):'))
-        self.logger.debug(f"Labels de dimension mis à jour pour l'unité: {unit}")
+        logger.debug(f"Labels de dimension mis à jour pour l'unité: {unit}")
 
 
     def validate_and_save(self):
         """Valide les entrées et sauvegarde les préférences."""
-        self.logger.debug("Validation et sauvegarde des données du dialogue...")
+        logger.debug("Validation et sauvegarde des données du dialogue...")
         
         # Sauvegarde de la langue sélectionnée
         selected_lang_code = self.language_var.get()
-        self.preference_manager.set_language(selected_lang_code)
+        self.config_manager.set_language(selected_lang_code)
         # S'assurer que le language_manager est aussi à jour pour le reste de la session
         self.language_manager.set_language(selected_lang_code) 
-        self.logger.info(f"Langue '{selected_lang_code}' sauvegardée dans les préférences.")
+        logger.info(f"Langue '{selected_lang_code}' sauvegardée dans les préférences.")
 
         # Sauvegarde de l'unité sélectionnée (elle est déjà dans self.unit_var)
         selected_unit_code = self.unit_var.get()
-        self.preference_manager.set_distance_unit(selected_unit_code)
-        self.logger.info(f"Unité '{selected_unit_code}' sauvegardée dans les préférences.")
+        self.config_manager.set_distance_unit(selected_unit_code)
+        logger.info(f"Unité '{selected_unit_code}' sauvegardée dans les préférences.")
 
         try:
             width_str = self.width_var.get()
@@ -200,27 +202,27 @@ class FirstLaunchDialog:
                                      parent=self.top)
                 return
 
-            self.preference_manager.set_physical_dimensions(width, height, selected_unit_code)
-            self.preference_manager.set_screen_config_verified(True)
-            dpi = self.preference_manager.calculate_and_set_dpi()
+            self.config_manager.set_physical_dimensions(width, height, selected_unit_code)
+            self.config_manager.set_screen_config_verified(True)
+            dpi = self.config_manager.calculate_and_set_dpi()
             
             msg = self.language_manager.get_text('config_saved_success', 'Configuration saved successfully.')
             if dpi:
                 msg += f" {self.language_manager.get_text('calculated_dpi_label', 'Calculated DPI:')} {dpi:.2f}"
             messagebox.showinfo(self.language_manager.get_text('config_saved_title', 'Configuration Saved'), msg, parent=self.top)
-            self.logger.info("Configuration (dimensions, DPI) sauvegardée avec succès depuis le dialogue.")
+            logger.info("Configuration (dimensions, DPI) sauvegardée avec succès depuis le dialogue.")
             
-            self.preference_manager.set_show_first_launch_dialog(False)
+            self.config_manager.set_show_first_launch_dialog(False)
 
             self.on_closing(close_app=False) # Ferme le dialogue sans quitter l'app
 
         except ValueError: # Si float() échoue
-            self.logger.warning("Erreur de valeur (non numérique) lors de la validation du dialogue.", exc_info=True)
+            logger.warning("Erreur de valeur (non numérique) lors de la validation du dialogue.", exc_info=True)
             messagebox.showerror(self.language_manager.get_text('error_title', 'Error'), 
                                  self.language_manager.get_text('invalid_numeric_input', 'Please enter numeric values for width and height.'), 
                                  parent=self.top)
         except Exception as e:
-            self.logger.error(f"Erreur inattendue lors de la validation: {e}", exc_info=True)
+            logger.error(f"Erreur inattendue lors de la validation: {e}", exc_info=True)
             messagebox.showerror(self.language_manager.get_text('error_title', 'Error'), 
                                  f"{self.language_manager.get_text('an_error_occurred', 'An error occurred')}: {e}", 
                                  parent=self.top)
@@ -228,19 +230,19 @@ class FirstLaunchDialog:
 
     def on_closing(self, close_app=True):
         """Gère la fermeture du dialogue."""
-        self.logger.debug(f"Tentative de fermeture du dialogue. close_app={close_app}, screen_config_verified={self.preference_manager.get_screen_config_verified()}")
+        logger.debug(f"Tentative de fermeture du dialogue. close_app={close_app}, screen_config_verified={self.config_manager.get_screen_config_verified()}")
         
         # Si l'écran n'a pas été configuré ET que la fermeture implique de quitter l'app (bouton X)
-        if not self.preference_manager.get_screen_config_verified() and close_app:
+        if not self.config_manager.get_screen_config_verified() and close_app:
             title = self.language_manager.get_text('exit_app_title', 'Exit Application')
             prompt = self.language_manager.get_text('exit_app_prompt', 'Screen dimensions are crucial for accurate tracking. Do you want to exit the application?')
             if messagebox.askyesno(title, prompt, parent=self.top):
-                self.logger.warning("L'utilisateur a choisi de quitter l'application car la configuration initiale n'a pas été validée.")
+                logger.warning("L'utilisateur a choisi de quitter l'application car la configuration initiale n'a pas été validée.")
                 if self.parent: 
                     self.parent.destroy() # Ferme l'application principale
             else:
-                self.logger.info("L'utilisateur a choisi de ne pas quitter, le dialogue reste ouvert.")
+                logger.info("L'utilisateur a choisi de ne pas quitter, le dialogue reste ouvert.")
                 return # Empêche la fermeture du dialogue
         
-        self.logger.info("Fermeture du dialogue FirstLaunch.")
+        logger.info("Fermeture du dialogue FirstLaunch.")
         self.top.destroy()

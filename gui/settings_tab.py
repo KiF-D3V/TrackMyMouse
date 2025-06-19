@@ -5,7 +5,6 @@ from tkinter import ttk
 from typing import Dict, Callable
 
 from utils.service_locator import service_locator
-# --- AJOUT: Import des nouveaux composants ---
 from .settings_components.language_settings_frame import LanguageSettingsFrame
 from .settings_components.unit_settings_frame import UnitSettingsFrame
 from .settings_components.screen_config_frame import ScreenConfigFrame
@@ -20,8 +19,8 @@ class SettingsTab(ttk.Frame):
         super().__init__(master)
         
         # --- Dépendances ---
+        self.config_manager = service_locator.get_service("config_manager")
         self.language_manager = service_locator.get_service("language_manager")
-        self.preference_manager = service_locator.get_service("preference_manager")
 
         # --- Variables d'état partagées ---
         # Cette variable est partagée avec le composant de configuration de l'écran
@@ -50,16 +49,16 @@ class SettingsTab(ttk.Frame):
 
         # Composant pour l'affichage des onglets
         # On importe le registre pour le rendre disponible ici
-        from config.app_config import OPTIONAL_TABS
+        optional_tabs = self.config_manager.get_app_config('OPTIONAL_TABS', [])
 
         # On crée les callbacks dynamiquement en parcourant le registre
         feature_callbacks = {
             tab_info["id"]: (
                 # On utilise une astuce lambda pour capturer la bonne valeur de tab_id
                 lambda value, tab_id=tab_info["id"]: 
-                self.preference_manager.set_show_tab(tab_id, value)
+                self.config_manager.set_show_tab(tab_id, value)
             )
-            for tab_info in OPTIONAL_TABS
+            for tab_info in optional_tabs
         }
         self.features_frame = FeaturesToggleFrame(self, callbacks=feature_callbacks)
         self.features_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=5)
@@ -70,7 +69,7 @@ class SettingsTab(ttk.Frame):
 
     def _on_language_change(self, lang_code: str):
         """Callback appelé par LanguageSettingsFrame."""
-        self.preference_manager.set_language(lang_code)
+        self.config_manager.set_language(lang_code)
         self.language_manager.set_language(lang_code)
         if hasattr(self.master.master, 'load_language'):
             self.master.master.load_language()
@@ -78,7 +77,7 @@ class SettingsTab(ttk.Frame):
     def _on_unit_change(self, unit_code: str):
         """Callback appelé par UnitSettingsFrame."""
         self.unit_var.set(unit_code) # Met à jour la variable partagée
-        self.preference_manager.set_distance_unit(unit_code)
+        self.config_manager.set_distance_unit(unit_code)
         
         # Notifie les autres composants du changement d'unité
         self.screen_frame.update_widget_texts() 
@@ -93,11 +92,11 @@ class SettingsTab(ttk.Frame):
     def load_all_settings(self):
         """Charge les paramètres dans tous les composants enfants."""
         # On passe le code de l'unité au composant qui en a besoin
-        self.unit_var.set(self.preference_manager.get_distance_unit())
+        self.unit_var.set(self.config_manager.get_distance_unit())
         
         # On demande à chaque composant de charger ses propres paramètres
-        self.language_frame.set_language_code(self.preference_manager.get_language())
-        self.unit_frame.set_unit_code(self.preference_manager.get_distance_unit())
+        self.language_frame.set_language_code(self.config_manager.get_language())
+        self.unit_frame.set_unit_code(self.config_manager.get_distance_unit())
         self.features_frame.load_settings()
         self.screen_frame.load_settings()
 

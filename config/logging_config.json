@@ -24,6 +24,16 @@
             "handlers": ["console"],
             "propagate": false
         },
+        "gui.settings_components.screen_config_frame": {
+            "level": "INFO",
+            "handlers": ["console"],
+            "propagate": false
+        },
+        "gui.first_launch_dialog": {
+            "level": "INFO",
+            "handlers": ["console"],
+            "propagate": false
+        },
         "managers.activity_tracker": {
             "level": "DEBUG",
             "handlers": ["console"],
@@ -49,13 +59,18 @@
             "handlers": ["console"],
             "propagate": false 
         },
+        "managers.systray_manager": {
+            "level": "INFO",
+            "handlers": ["console"],
+            "propagate": false 
+        },
         "modules.level.level_tab": {
             "level": "INFO",
             "handlers": ["console"],
             "propagate": false 
         },
         "modules.level.xp_manager": {
-            "level": "DEBUG",
+            "level": "INFO",
             "handlers": ["console"],
             "propagate": false 
         },

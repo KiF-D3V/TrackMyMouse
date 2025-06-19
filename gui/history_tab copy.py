@@ -6,10 +6,9 @@ import logging
 from typing import List, Dict, Any
 import datetime 
 
+from config.app_config import HISTORY_DAYS_OPTIONS
 from utils.service_locator import service_locator
 from utils.unit_converter import format_distance, format_seconds_to_hms
-
-logger = logging.getLogger(__name__)
 
 class HistoryTab(ttk.Frame):
     """
@@ -18,14 +17,14 @@ class HistoryTab(ttk.Frame):
     """
     def __init__(self, master=None):
         super().__init__(master)
-        logger.info("Initialisation de HistoryTab (simplifié)...")
+        self.logger = logging.getLogger(__name__)
+        self.logger.info("Initialisation de HistoryTab (simplifié)...")
 
-        self.config_manager = service_locator.get_service("config_manager")
         self.language_manager = service_locator.get_service("language_manager")
         self.stats_manager = service_locator.get_service("stats_manager")
-        
-        history_options = self.config_manager.get_app_config('HISTORY_DAYS_OPTIONS', [7, 14, 30])
-        self.n_days_var = tk.IntVar(value=history_options[0])
+        self.preference_manager = service_locator.get_service("preference_manager")
+
+        self.n_days_var = tk.IntVar(value=HISTORY_DAYS_OPTIONS[0])
 
         self.column_keys = [
             "date", "distance", "clicks_left", "clicks_middle", "clicks_right", 
@@ -45,13 +44,13 @@ class HistoryTab(ttk.Frame):
 
         self._setup_ui()
         self.update_widget_texts() 
-        logger.info("HistoryTab initialisé.")
+        self.logger.info("HistoryTab (simplifié) initialisé.")
 
     def _setup_ui(self):
         """
         Configure l'UI simplifiée, sans section dépliante.
         """
-        logger.debug("Configuration de l'UI pour HistoryTab (simplifié).")
+        self.logger.debug("Configuration de l'UI pour HistoryTab (simplifié).")
         main_content_frame = ttk.Frame(self, padding="10")
         main_content_frame.pack(expand=True, fill="both")
         
@@ -64,8 +63,7 @@ class HistoryTab(ttk.Frame):
         self.days_option_label = ttk.Label(options_frame, text="")
         self.days_option_label.pack(side="left", padx=(0,10))
         
-        history_options = self.config_manager.get_app_config('HISTORY_DAYS_OPTIONS', [])
-        for days in history_options:
+        for days in HISTORY_DAYS_OPTIONS:
             rb = ttk.Radiobutton(
                 options_frame, text="", variable=self.n_days_var, 
                 value=days, command=self.load_historical_data
@@ -75,7 +73,7 @@ class HistoryTab(ttk.Frame):
             
         self.tree = ttk.Treeview(
             history_labelframe, columns=self.column_keys, 
-            show="headings", height=10
+            show="headings", height=10 # Hauteur augmentée
         )
         self.tree.pack(expand=True, fill="both", padx=5, pady=5)
         
@@ -91,15 +89,14 @@ class HistoryTab(ttk.Frame):
 
     def update_widget_texts(self):
         """Met à jour les textes des widgets et recharge les données."""
-        logger.debug("HistoryTab invité à mettre à jour ses textes.")
+        self.logger.debug("HistoryTab invité à mettre à jour ses textes.")
         
         title = self.language_manager.get_text('history_last_n_days_title', "Historique des derniers jours")
         self.history_labelframe.config(text=title)
         
         self.days_option_label.config(text=self.language_manager.get_text('history_show_days_label', "Afficher :"))
         
-        history_options = self.config_manager.get_app_config('HISTORY_DAYS_OPTIONS', [])
-        for days_val in history_options:
+        for days_val in HISTORY_DAYS_OPTIONS:
             rb_widget = getattr(self, f"rb_days_{days_val}", None)
             if rb_widget:
                 rb_widget.config(text=self.language_manager.get_text(f'history_{days_val}_days', f"{days_val} jours"))
@@ -112,22 +109,22 @@ class HistoryTab(ttk.Frame):
     def load_historical_data(self):
         """Charge les données des N derniers jours et les affiche dans le tableau."""
         num_days_to_fetch = self.n_days_var.get()
-        logger.info(f"Chargement des données historiques pour les {num_days_to_fetch} derniers jours.")
+        self.logger.info(f"Chargement des données historiques pour les {num_days_to_fetch} derniers jours.")
         for item in self.tree.get_children():
             self.tree.delete(item)
         try:
             historical_data = self.stats_manager.get_last_n_days_stats(num_days_to_fetch)
             if not historical_data:
-                logger.info("Aucune donnée historique trouvée.")
+                self.logger.info("Aucune donnée historique trouvée.")
                 self.tree.insert("", "end", values=(self.language_manager.get_text('history_no_data', "Aucune donnée disponible"),))
                 return
             for db_row in historical_data:
                 display_row = self._format_row_for_display(db_row)
                 ordered_values = [display_row.get(key, "") for key in self.column_keys]
                 self.tree.insert("", "end", values=ordered_values)
-            logger.info(f"{len(historical_data)} jours de données historiques chargés.")
+            self.logger.info(f"{len(historical_data)} jours de données historiques chargés.")
         except Exception as e:
-            logger.error(f"Erreur lors du chargement des données historiques: {e}", exc_info=True)
+            self.logger.error(f"Erreur lors du chargement des données historiques: {e}", exc_info=True)
             self.tree.insert("", "end", values=(self.language_manager.get_text('history_load_error', "Erreur de chargement"),))
 
     def _get_formatted_date(self, date_str: str) -> str:
@@ -138,7 +135,7 @@ class HistoryTab(ttk.Frame):
                 return date_obj.strftime('%d/%m/%Y')
             return date_obj.strftime('%Y-%m-%d')
         except (ValueError, TypeError):
-            logger.warning(f"Format de date invalide reçu: {date_str}")
+            self.logger.warning(f"Format de date invalide reçu: {date_str}")
             return date_str
 
     def _format_row_for_display(self, db_row: Dict[str, Any]) -> Dict[str, str]:
@@ -146,8 +143,8 @@ class HistoryTab(ttk.Frame):
         formatted_row = {'date': self._get_formatted_date(db_row.get('date', ''))}
         
         distance_pixels = db_row.get('distance_pixels', 0.0)
-        dpi = self.config_manager.get_dpi()
-        unit_system = self.config_manager.get_distance_unit()
+        dpi = self.preference_manager.get_dpi()
+        unit_system = self.preference_manager.get_distance_unit()
         lang = self.language_manager.get_current_language()
         
         dist_val, dist_unit = format_distance(distance_pixels, dpi, unit_system, lang)

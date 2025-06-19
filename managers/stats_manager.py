@@ -6,11 +6,11 @@ from pynput.mouse import Button
 from typing import Optional, List, Dict, Any 
 
 from utils.math_utils import calculate_distance
-from managers.preference_manager import PreferenceManager
 from utils.service_locator import service_locator
 from utils.event_manager import event_manager
 from .stats_repository import StatsRepository
 
+logger = logging.getLogger(__name__)
 
 class StatsManager:
     """
@@ -19,13 +19,12 @@ class StatsManager:
     """
 
     def __init__(self):
-        self.logger = logging.getLogger(__name__) 
-        self.logger.info("Initialisation de StatsManager...")
+        logger.info("Initialisation de StatsManager...")
 
         self.stats_repository = StatsRepository()
         service_locator.register_service("stats_repository", self.stats_repository)
 
-        self.preference_manager: PreferenceManager = service_locator.get_service("preference_manager")
+        self.config_manager = service_locator.get_service("config_manager")
 
         # --- AJOUT : Abonnement aux événements ---
         self.event_manager = event_manager
@@ -41,21 +40,21 @@ class StatsManager:
         self._current_day_stats_in_memory: dict = self._get_or_create_todays_entry()
         self._initialize_app_settings() 
         
-        self.logger.info("StatsManager initialisé et tracker d'activité démarré.")
+        logger.info("StatsManager initialisé et tracker d'activité démarré.")
 
     def _initialize_app_settings(self):
         """
         S'assure que 'first_launch_date' est en BDD via le repository.
         """
         if self.stats_repository.get_app_setting('first_launch_date') is None:
-            self.logger.info("'first_launch_date' non trouvée. Lecture depuis PreferenceManager.")
+            logger.info("'first_launch_date' non trouvée. Lecture depuis PreferenceManager.")
             try:
-                first_launch_date_str = self.preference_manager.get_first_launch_date()
+                first_launch_date_str = self.config_manager.get_first_launch_date()
                 self.stats_repository.set_app_setting('first_launch_date', first_launch_date_str)
             except Exception as e:
-                self.logger.error(f"Erreur lors de l'initialisation de 'first_launch_date': {e}", exc_info=True)
+                logger.error(f"Erreur lors de l'initialisation de 'first_launch_date': {e}", exc_info=True)
         else:
-            self.logger.debug("'first_launch_date' déjà présente dans la BDD.")
+            logger.debug("'first_launch_date' déjà présente dans la BDD.")
 
     def _get_or_create_todays_entry(self) -> dict:
         """
@@ -63,7 +62,7 @@ class StatsManager:
         """
         todays_stats = self.stats_repository.get_daily_stats(self.today)
         if todays_stats is None:
-            self.logger.info(f"Aucune entrée pour {self.today}, création via le repository.")
+            logger.info(f"Aucune entrée pour {self.today}, création via le repository.")
             self.stats_repository.create_daily_stats_entry(self.today)
             todays_stats = self.stats_repository.get_daily_stats(self.today)
         
@@ -90,7 +89,7 @@ class StatsManager:
         Gère le changement de jour détecté par l'ActivityTracker.
         Sauvegarde les stats de la veille et réinitialise pour le nouveau jour.
         """
-        self.logger.info(f"Événement 'day_changed' reçu. Sauvegarde pour {old_date} et réinitialisation pour {new_date}.")
+        logger.info(f"Événement 'day_changed' reçu. Sauvegarde pour {old_date} et réinitialisation pour {new_date}.")
         self.save_changes() 
         self.today = new_date
         self._current_day_stats_in_memory = self._get_or_create_todays_entry()
@@ -115,7 +114,7 @@ class StatsManager:
         Demande au repository de calculer les statistiques globales et 
         mappe les résultats dans un format attendu par l'application.
         """
-        self.logger.debug("Récupération et mappage des statistiques globales.")
+        logger.debug("Récupération et mappage des statistiques globales.")
         self.save_changes() 
         
         repo_stats = self.stats_repository.get_global_stats()
@@ -146,7 +145,7 @@ class StatsManager:
         """
         Demande au repository le jour record pour la distance, après avoir sauvegardé l'état actuel.
         """
-        self.logger.debug("Passerelle StatsManager: demande du record de distance.")
+        logger.debug("Passerelle StatsManager: demande du record de distance.")
         self.save_changes()
         return self.stats_repository.get_record_day_for_distance()
 
@@ -154,24 +153,24 @@ class StatsManager:
         """
         Demande au repository le jour record pour l'activité, après avoir sauvegardé l'état actuel.
         """
-        self.logger.debug("Passerelle StatsManager: demande du record d'activité.")
+        logger.debug("Passerelle StatsManager: demande du record d'activité.")
         self.save_changes()
         return self.stats_repository.get_record_day_for_activity()
 
     def save_changes(self):
         """Demande au repository de sauvegarder les statistiques en mémoire du jour courant."""
-        self.logger.debug("Sauvegarde des changements via le repository.")
+        logger.debug("Sauvegarde des changements via le repository.")
         self.stats_repository.update_daily_stats(self._current_day_stats_in_memory)
         self.stats_repository.save_changes()
 
     def close(self):
         """Arrête le thread, sauvegarde les changements et ferme la connexion du repository."""
-        self.logger.info("Demande de fermeture de StatsManager.")
+        logger.info("Demande de fermeture de StatsManager.")
                 
-        self.logger.info("Sauvegarde finale des changements avant fermeture.")
+        logger.info("Sauvegarde finale des changements avant fermeture.")
         self.save_changes() 
         self.stats_repository.close()
-        self.logger.info("StatsManager et son repository sont fermés.")
+        logger.info("StatsManager et son repository sont fermés.")
 
     def _get_initial_daily_stats_structure(self) -> dict:
         """Retourne un dictionnaire représentant l'état initial des statistiques journalières."""

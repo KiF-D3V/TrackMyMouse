@@ -6,7 +6,7 @@ import datetime
 import logging
 
 from utils.event_manager import event_manager
-from utils.service_locator import service_locator
+from config.app_config import INACTIVITY_THRESHOLD_SECONDS, ACTIVITY_TRACKER_INTERVAL
 
 # --- MODIFICATION : Logger au niveau du module pour la cohérence ---
 logger = logging.getLogger(__name__)
@@ -21,7 +21,6 @@ class ActivityTracker(threading.Thread):
                 
         # Dépendances
         self.event_manager = event_manager
-        self.config_manager = service_locator.get_service("config_manager")
         
         # État interne
         self._stop_event = threading.Event()
@@ -43,10 +42,6 @@ class ActivityTracker(threading.Thread):
         S'exécute toutes les secondes pour vérifier l'état d'activité et la date.
         """
         logger.info("Le thread du ActivityTracker démarre.")
-
-        inactivity_threshold = self.config_manager.get_app_config('INACTIVITY_THRESHOLD_SECONDS', 2)
-        tracker_interval = self.config_manager.get_app_config('ACTIVITY_TRACKER_INTERVAL', 1)
-
         while not self._stop_event.is_set():
             # Vérifie le changement de jour
             current_date = datetime.date.today().isoformat()
@@ -57,7 +52,7 @@ class ActivityTracker(threading.Thread):
                 self._update_last_activity_time() # Réinitialise le timer d'activité
 
             # Vérifie l'inactivité
-            is_inactive = (time.time() - self.last_activity_time) > inactivity_threshold
+            is_inactive = (time.time() - self.last_activity_time) > INACTIVITY_THRESHOLD_SECONDS
             
             if is_inactive:
                 self.event_manager.publish('activity_tick', status='inactive')
@@ -65,7 +60,7 @@ class ActivityTracker(threading.Thread):
                 self.event_manager.publish('activity_tick', status='active')
 
             # Attend l'intervalle défini avant la prochaine vérification
-            self._stop_event.wait(tracker_interval)
+            self._stop_event.wait(ACTIVITY_TRACKER_INTERVAL)
             
         logger.info("Le thread du ActivityTracker s'est arrêté proprement.")
 

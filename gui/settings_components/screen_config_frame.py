@@ -3,8 +3,11 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from typing import Callable
+import logging
 
 from utils.service_locator import service_locator
+
+logger = logging.getLogger(__name__)
 
 class ScreenConfigFrame(ttk.LabelFrame):
     """
@@ -25,13 +28,14 @@ class ScreenConfigFrame(ttk.LabelFrame):
         self.on_config_validated_callback = on_config_validated_callback
 
         # --- Dépendances ---
+        self.config_manager = service_locator.get_service("config_manager")
         self.language_manager = service_locator.get_service("language_manager")
-        self.preference_manager = service_locator.get_service("preference_manager")
         
         # --- Initialisation de l'UI ---
         self._setup_widgets()
         self.load_settings()
         self.update_widget_texts()
+        logger.info("ScreenConfigFrame initialisé.")
 
     def _setup_widgets(self):
         """Crée et positionne les widgets à l'intérieur de ce cadre."""
@@ -57,6 +61,7 @@ class ScreenConfigFrame(ttk.LabelFrame):
 
     def _on_validate_click(self):
         """Logique exécutée lors du clic sur le bouton 'Valider'."""
+        logger.debug("Clic sur le bouton de validation de la configuration de l'écran.")
         width_str = self.width_entry.get()
         height_str = self.height_entry.get()
         unit_code = self.unit_var.get()
@@ -65,9 +70,9 @@ class ScreenConfigFrame(ttk.LabelFrame):
             width = float(width_str)
             height = float(height_str)
             if width > 0 and height > 0:
-                self.preference_manager.set_physical_dimensions(width, height, unit_code)
-                self.preference_manager.set_screen_config_verified(True)
-                dpi = self.preference_manager.calculate_and_set_dpi()
+                self.config_manager.set_physical_dimensions(width, height, unit_code)
+                self.config_manager.set_screen_config_verified(True)
+                dpi = self.config_manager.calculate_and_set_dpi()
                 
                 message = self.language_manager.get_text('screen_config_saved_message')
                 if dpi:
@@ -83,13 +88,15 @@ class ScreenConfigFrame(ttk.LabelFrame):
 
     def load_settings(self):
         """Charge les valeurs depuis le PreferenceManager dans les champs de saisie."""
+        logger.debug("Chargement des paramètres de l'écran.")
         self.width_entry.delete(0, tk.END)
-        self.width_entry.insert(0, str(self.preference_manager.get_physical_width_cm()) or "")
+        self.width_entry.insert(0, str(self.config_manager.get_physical_width_cm()) or "")
         self.height_entry.delete(0, tk.END)
-        self.height_entry.insert(0, str(self.preference_manager.get_physical_height_cm()) or "")
+        self.height_entry.insert(0, str(self.config_manager.get_physical_height_cm()) or "")
 
     def update_widget_texts(self):
         """Met à jour tous les textes de ce composant."""
+        logger.debug("Mise à jour des textes pour ScreenConfigFrame.")
         self.config(text=self.language_manager.get_text('screen_config'))
         self.validate_button.config(text=self.language_manager.get_text('validate_screen_config_button'))
         

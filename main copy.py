@@ -18,7 +18,6 @@ from utils.service_locator import service_locator
 from managers.language_manager import LanguageManager
 from managers.stats_manager import StatsManager
 from managers.preference_manager import PreferenceManager
-from managers.config_manager import ConfigManager
 from managers.input_manager import InputManager
 from managers.systray_manager import SystrayManager
 from modules.level.xp_manager import XPManager
@@ -64,7 +63,7 @@ class MouseTrackerApp:
         
         self._initialize_systray()
 
-        if self.config_manager and self.config_manager.get_show_first_launch_dialog():
+        if self.preference_manager and self.preference_manager.get_show_first_launch_dialog():
             self._show_first_launch_dialog() 
         else:
             self.root.deiconify() 
@@ -76,18 +75,19 @@ class MouseTrackerApp:
         """Initialise les gestionnaires principaux de l'application."""
         self.logger.info("Initialisation des services...")
         try:
-            self.config_manager = ConfigManager()
-            service_locator.register_service("config_manager", self.config_manager)
+            self.preference_manager = PreferenceManager()
+            service_locator.register_service("preference_manager", self.preference_manager)
 
-            language_manager = LanguageManager()
-            self.language_manager = language_manager
-            service_locator.register_service("language_manager", language_manager)
+            self.language_manager = LanguageManager() 
+            service_locator.register_service("language_manager", self.language_manager)
             service_locator.register_service("event_manager", event_manager)
 
             self.stats_manager = StatsManager()
             service_locator.register_service("stats_manager", self.stats_manager)
 
+            # La ligne suivante était manquante. Elle est essentielle pour créer l'objet XPManager.
             self.xp_manager = XPManager(event_manager)
+            
             service_locator.register_service("xp_manager", self.xp_manager)
             self.xp_manager.start()
 
@@ -145,7 +145,10 @@ class MouseTrackerApp:
         self.logger.info("Préparation affichage dialogue premier lancement.")
         
         try:
-            dialog = FirstLaunchDialog(self.root)
+            lang_mgr = service_locator.get_service("language_manager")
+            pref_mgr = service_locator.get_service("preference_manager")
+
+            dialog = FirstLaunchDialog(self.root, lang_mgr, pref_mgr)
             self.logger.info("Dialogue premier lancement créé, en attente de fermeture...")
             self.root.wait_window(dialog.top) 
             self.logger.info("Dialogue premier lancement fermé.")
@@ -155,7 +158,11 @@ class MouseTrackerApp:
 
             if self.main_window:
                 self.main_window.load_language() 
-                        
+                self.main_window.update_stats_display() 
+
+            if self.preference_manager:
+                self.preference_manager.set_show_first_launch_dialog(False)
+                self.logger.info("Préférence 'show_first_launch_dialog' mise à False.")
         except Exception as e:
             self.logger.error(f"Erreur lors de l'affichage du dialogue de premier lancement: {e}", exc_info=True)
             if self.root and self.root.winfo_exists():

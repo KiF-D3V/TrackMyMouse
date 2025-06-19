@@ -9,6 +9,8 @@ import logging
 from utils.service_locator import service_locator
 from utils.unit_converter import format_distance, format_seconds_to_hms
 
+logger = logging.getLogger(__name__)
+
 class TodayTab(ttk.Frame):
     """
     Onglet de l'interface graphique affichant les statistiques
@@ -16,21 +18,20 @@ class TodayTab(ttk.Frame):
     """
     def __init__(self, master=None):
         super().__init__(master)
-        self.logger = logging.getLogger(__name__)
-        
+                
         # Accès aux services via le Service Locator
+        self.config_manager = service_locator.get_service("config_manager")
         self.language_manager = service_locator.get_service("language_manager")
         self.stats_manager = service_locator.get_service("stats_manager")
-        self.preference_manager = service_locator.get_service("preference_manager")
 
         self._setup_widgets()
-        self.logger.info("Onglet 'Aujourd'hui' initialisé.")
+        logger.info("Onglet 'Aujourd'hui' initialisé.")
 
     def _setup_widgets(self):
         """
         Configure la disposition et les widgets pour l'onglet.
         """
-        self.logger.debug("Configuration des widgets de l'onglet 'Aujourd'hui'.")
+        logger.debug("Configuration des widgets de l'onglet 'Aujourd'hui'.")
         # --- Section "Aujourd'hui" ---
         self.distance_today_label = ttk.Label(self, text="", anchor='w')
         self.distance_today_label.pack(padx=10, pady=(10, 5), fill='x')
@@ -55,7 +56,7 @@ class TodayTab(ttk.Frame):
 
         self.activity_global_label = ttk.Label(self, text="", anchor='w')
         self.activity_global_label.pack(padx=10, pady=(5, 10), fill='x')
-        self.logger.debug("Widgets de l'onglet 'Aujourd'hui' créés.")
+        logger.debug("Widgets de l'onglet 'Aujourd'hui' créés.")
 
     def update_display(self):
         """
@@ -70,9 +71,9 @@ class TodayTab(ttk.Frame):
             
             # Récupération des préférences
             current_language = self.language_manager.get_current_language()
-            dpi = self.preference_manager.get_dpi()
-            distance_unit = self.preference_manager.get_distance_unit()
-            date_format_from_prefs = self.preference_manager.get_date_format()
+            dpi = self.config_manager.get_dpi()
+            distance_unit = self.config_manager.get_distance_unit()
+            date_format_from_prefs = self.config_manager.get_date_format()
 
             # Préparation des textes formatés
             today_texts = self._prepare_today_stats_texts(todays_stats, dpi, distance_unit, current_language)
@@ -90,7 +91,7 @@ class TodayTab(ttk.Frame):
             self.activity_global_label.config(text=global_texts["activity"])
 
         except Exception as e:
-            self.logger.error(f"Erreur majeure lors de la mise à jour de l'affichage des statistiques: {e}", exc_info=True)
+            logger.error(f"Erreur majeure lors de la mise à jour de l'affichage des statistiques: {e}", exc_info=True)
 
     def _prepare_today_stats_texts(self, todays_stats: dict, dpi: float, distance_unit: str, current_language: str) -> dict:
         """
@@ -147,7 +148,7 @@ class TodayTab(ttk.Frame):
         Formate la date de premier lancement pour l'affichage.
         """
         if not date_iso:
-            self.logger.warning("Date de premier lancement non disponible pour le formatage.")
+            logger.warning("Date de premier lancement non disponible pour le formatage.")
             return self.language_manager.get_text('unknown_date', "Date inconnue")
         try:
             date_obj = datetime.datetime.fromisoformat(date_iso)
@@ -156,7 +157,7 @@ class TodayTab(ttk.Frame):
             else:
                 return date_obj.strftime(date_format_pref)
         except ValueError as ve:
-            self.logger.error(f"Format de date ISO ('{date_iso}') ou de préférence ('{date_format_pref}') invalide: {ve}")
+            logger.error(f"Format de date ISO ('{date_iso}') ou de préférence ('{date_format_pref}') invalide: {ve}")
             return date_iso 
     
     def update_widget_texts(self):
@@ -164,5 +165,5 @@ class TodayTab(ttk.Frame):
         Met à jour les textes des widgets de l'onglet, typiquement après un changement de langue.
         Ici, il suffit de relancer la mise à jour complète des statistiques.
         """
-        self.logger.debug("Mise à jour des textes des widgets pour l'onglet 'Aujourd'hui'.")
+        logger.debug("Mise à jour des textes des widgets pour l'onglet 'Aujourd'hui'.")
         self.update_display()

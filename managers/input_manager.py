@@ -5,7 +5,6 @@ from pynput.mouse import Listener, Button
 from utils.event_manager import event_manager
 from utils.service_locator import service_locator
 
-# --- MODIFICATION : Logger au niveau du module pour la cohérence ---
 logger = logging.getLogger(__name__)
 
 class InputManager:
@@ -18,10 +17,10 @@ class InputManager:
         self.is_ready = False
         
         self.event_manager = event_manager
-        self.preference_manager = service_locator.get_service("preference_manager")
+        self.config_manager = service_locator.get_service("config_manager")
 
-        if not self.preference_manager:
-            logger.error("PreferenceManager non disponible. InputManager ne sera pas fonctionnel.")
+        if not self.config_manager:
+            logger.error("ConfigManager non disponible. InputManager ne sera pas fonctionnel.")
         else:
             self.is_ready = True
             logger.info("InputManager initialisé.")
@@ -29,7 +28,7 @@ class InputManager:
     def _on_move(self, x, y):
         """Callback for mouse movement events. Publishes a 'mouse_moved' event."""
         try:
-            if self.is_ready and self.preference_manager.get_track_mouse_distance():
+            if self.is_ready and self.config_manager.get_track_mouse_distance():
                 self.event_manager.publish('mouse_moved', x=x, y=y)
         except Exception as e:
             logger.error(
@@ -40,7 +39,7 @@ class InputManager:
     def _on_click(self, x, y, button: Button, pressed: bool):
         """Callback for mouse click events. Publishes a 'mouse_clicked' event on press."""
         try:
-            if pressed and self.is_ready and self.preference_manager.get_track_mouse_clicks():
+            if pressed and self.is_ready and self.config_manager.get_track_mouse_clicks():
                 button_name = button.name if hasattr(button, 'name') else 'unknown'
                 logger.debug(f"Clic détecté : {button_name}")
                 self.event_manager.publish('mouse_clicked', button=button, x=x, y=y) # Note: ajout de x, y

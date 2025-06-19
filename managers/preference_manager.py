@@ -58,7 +58,7 @@ class PreferenceManager:
         """Définit les préférences par défaut pour un nouveau fichier de configuration."""
         logger.debug("Définition des préférences par défaut.")
         self.config['General'] = {
-            'language': 'en',
+            'language': 'fr',
             'distance_unit': 'metric',
             'first_launch_date': self._generate_first_launch_date_string(),
             'date_format': '%%Y-%%m-%%d %%H:%%M:%%S', 

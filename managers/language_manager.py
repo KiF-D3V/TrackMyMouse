@@ -5,6 +5,7 @@ import os
 import logging
 
 from utils.paths import get_locales_path
+from utils.service_locator import service_locator
 
 # --- MODIFICATION : Logger au niveau du module pour la cohérence ---
 logger = logging.getLogger(__name__)
@@ -26,6 +27,15 @@ class LanguageManager:
             self.language_codes = ['fr', 'en'] 
             self.unit_codes = ['metric', 'imperial'] 
             self._load_languages()
+
+            # --- AJOUT : Configuration initiale de la langue ---
+            try:
+                config_manager = service_locator.get_service("config_manager")
+                preferred_language = config_manager.get_language()
+                self.set_language(preferred_language)
+            except Exception as e:
+                logger.error(f"Impossible de définir la langue initiale depuis le ConfigManager. Utilisation de '{self.current_language}'. Erreur: {e}")
+
             self._initialized = True
             logger.info("LanguageManager initialisé.")
 

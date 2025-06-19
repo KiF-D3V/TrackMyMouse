@@ -18,13 +18,12 @@ class FeaturesToggleFrame(ttk.LabelFrame):
         self.callbacks = callbacks
 
         # --- Dépendances ---
+        self.config_manager = service_locator.get_service("config_manager")
         self.language_manager = service_locator.get_service("language_manager")
-        self.preference_manager = service_locator.get_service("preference_manager")
         
         # --- AJOUT: Import du registre ---
-        from config.app_config import OPTIONAL_TABS
-        self.optional_tabs = OPTIONAL_TABS
-
+        self.optional_tabs = self.config_manager.get_app_config('OPTIONAL_TABS', [])
+        
         # --- MODIFIÉ : Création dynamique des variables ---
         self.vars = {tab_info["id"]: tk.BooleanVar() for tab_info in self.optional_tabs}
         
@@ -71,7 +70,7 @@ class FeaturesToggleFrame(ttk.LabelFrame):
         for tab_info in self.optional_tabs:
             key = tab_info["id"]
             # On utilise la méthode générique du PreferenceManager
-            is_enabled = self.preference_manager.get_show_tab(key)
+            is_enabled = self.config_manager.get_show_tab(key)
             self.vars[key].set(is_enabled)
 
     def update_widget_texts(self):
