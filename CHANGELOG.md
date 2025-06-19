@@ -2,6 +2,23 @@
 
 Toutes les modifications notables apportées à ce projet seront documentées dans ce fichier.
 
+## [0.7.0] - 2025-06-19
+
+### ✨ Added
+- **Nouveau look pour l'onglet "Niveau" !** Pour mieux suivre votre progression, votre niveau est maintenant affiché en plus gros et en couleur. La barre de progression a également été redessinée pour être plus visible.
+
+### ♻️ Changed
+- **Amélioration des performances et de la stabilité.** Une large partie du code interne a été réécrite pour rendre l'application plus robuste et plus facile à mettre à jour à l'avenir.
+- **Meilleur suivi des erreurs.** Le système de journalisation a été amélioré pour nous permettre de diagnostiquer et corriger les bugs plus efficacement.
+
+### 🐛 Fixed
+- Correction d'un bug majeur qui pouvait arrêter le suivi de la souris après un clic droit ou après avoir restauré l'application depuis la barre des tâches.
+- Correction d'un problème où l'icône dans la barre des tâches (systray) pouvait ne pas s'afficher correctement au démarrage.
+- Correction d'un bug qui empêchait la fenêtre de bienvenue et de configuration de s'afficher pour les nouveaux utilisateurs.
+- Résolution de plusieurs erreurs qui pouvaient survenir au démarrage de l'application suite aux récentes modifications.
+
+---
+
 ## [0.6.1] - 2025-06-16
 
 ### 🐛 Fixed
