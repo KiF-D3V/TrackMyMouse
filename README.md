@@ -1,6 +1,6 @@
 # TrackMyMouse
 
-**Version actuelle : 0.7.0**
+**Version actuelle : 0.8.0**
 
 TrackMyMouse est conçue pour suivre et analyser l'activité de votre souris !
 

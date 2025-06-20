@@ -2,6 +2,16 @@
 
 Toutes les modifications notables apportées à ce projet seront documentées dans ce fichier.
 
+## [0.8.0] - 2025-06-20
+
+### ♻️ Changed
+- **Fiabilité et Stabilité Accrues :** L'architecture interne de l'application a été entièrement réorganisée. Ce grand refactoring rend l'application plus robuste, plus rapide au démarrage et prépare le terrain pour les futures évolutions de manière plus saine.
+
+### 🐛 Fixed
+- **Correction de Bugs :** Plusieurs erreurs potentielles qui pouvaient survenir lors de l'initialisation des différents modules ont été résolues grâce à cette nouvelle architecture.
+
+---
+
 ## [0.7.0] - 2025-06-19
 
 ### ✨ Added
