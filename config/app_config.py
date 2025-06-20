@@ -13,7 +13,7 @@ DB_FILENAME = "stats.db"
 PREFERENCES_FILENAME = "user_preferences.ini"
 
 # --- Stats & Activity Tracking ---
-INACTIVITY_THRESHOLD_SECONDS = 2
+INACTIVITY_THRESHOLD_SECONDS = 5
 ACTIVITY_TRACKER_INTERVAL = 1
 
 # --- XP/Level System ---
