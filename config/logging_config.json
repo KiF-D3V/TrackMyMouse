@@ -24,6 +24,21 @@
             "handlers": ["console"],
             "propagate": false
         },
+        "core.app_builder": {
+            "level": "INFO",
+            "handlers": ["console"],
+            "propagate": false
+        },
+        "core.application": {
+            "level": "INFO",
+            "handlers": ["console"],
+            "propagate": false
+        },
+        "core.event_manager": {
+            "level": "INFO",
+            "handlers": ["console"],
+            "propagate": false 
+        },
         "gui.settings_components.screen_config_frame": {
             "level": "INFO",
             "handlers": ["console"],
@@ -73,12 +88,7 @@
             "level": "INFO",
             "handlers": ["console"],
             "propagate": false 
-        },
-        "utils.event_manager": {
-            "level": "INFO",
-            "handlers": ["console"],
-            "propagate": false 
-        }
+        }        
     },
 
     "root": {
