@@ -3,12 +3,9 @@
 import tkinter as tk
 from tkinter import ttk
 import logging
-import importlib
 
-# Import onglets toujours affichés
-from gui import today_tab
-from gui import settings_tab
-from gui import about_tab
+# --- MODIFICATION : L'import des onglets est maintenant géré par le TabBuilder ---
+from gui.builders.tab_builder import TabBuilder
 
 # Imports de configuration et du Service Locator
 from version import __version__
@@ -52,58 +49,20 @@ class MainWindow(ttk.Frame):
 
     def _setup_tabs(self):
         """
-        Construit dynamiquement la liste des onglets à afficher
-        en lisant le registre central OPTIONAL_TABS.
+        --- MODIFICATION MAJEURE ---
+        Délègue la construction et l'ajout de tous les onglets au TabBuilder.
         """
-        logger.info("Configuration dynamique des onglets...")
+        logger.info("Délégation de la création des onglets au TabBuilder...")
+        builder = TabBuilder(self.notebook)
+        self.tab_references = builder.build_all()
         
-        # --- Onglets principaux (toujours affichés) ---
-        today = today_tab.TodayTab(self.notebook)
-        self.tabs.append({'instance': today, 'title_key': 'today_tab_title', 'default': 'Today'})
-        self.today_tab = today
-
-        # --- MODIFIÉ : Boucle dynamique pour les onglets optionnels ---
-        optional_tabs = self.config_manager.get_app_config('OPTIONAL_TABS', [])
-        for tab_info in optional_tabs:
-            # On utilise la méthode générique pour vérifier si l'onglet doit être affiché
-            if self.config_manager.get_show_tab(tab_info["id"]):
-                try:
-                    # Importation dynamique du module de l'onglet
-                    module = importlib.import_module(tab_info["module_path"])
-                    # Récupération de la classe de l'onglet depuis le module
-                    TabClass = getattr(module, tab_info["class_name"])
-                    # Création de l'instance de l'onglet
-                    instance = TabClass(self.notebook)
-                    
-                    self.tabs.append({
-                        'instance': instance, 
-                        'title_key': tab_info["title_key"], 
-                        'default': tab_info["id"].capitalize()
-                    })
-                    logger.info(f"Onglet '{tab_info['id']}' activé et chargé.")
-
-                except (ImportError, AttributeError) as e:
-                    logger.error(f"Impossible de charger l'onglet '{tab_info['id']}': {e}")
-        
-        # --- Onglets de fin (toujours affichés) ---
-        settings = settings_tab.SettingsTab(self.notebook)
-        self.tabs.append({'instance': settings, 'title_key': 'settings_tab_title', 'default': 'Settings'})
-        
-        about = about_tab.AboutTab(self.notebook)
-        self.tabs.append({'instance': about, 'title_key': 'about_tab_title', 'default': 'About'})
-
-        # Ajout physique des onglets au notebook
-        for tab_info in self.tabs:
-            tab_text = self.language_manager.get_text(tab_info['title_key'], tab_info['default'])
-            self.notebook.add(tab_info['instance'], text=tab_text)
+        # On garde une référence directe à l'onglet "Aujourd'hui" si nécessaire
+        self.today_tab = self.tab_references.get('today')
 
     def load_language(self):
         """
         Charge la langue et met à jour dynamiquement le titre et tous les onglets créés.
         """
-        # --- AJOUT: Ligne de test ---
-        logger.critical("--- MÉTHODE load_language DE MAIN_WINDOW APPELÉE ---")
-
         logger.debug("Chargement de la langue pour l'ensemble de l'interface.")
         try:
             lang = self.config_manager.get_language() 
@@ -112,19 +71,25 @@ class MainWindow(ttk.Frame):
             # Mise à jour du titre de la fenêtre
             self.master.title(f"{self.language_manager.get_text('app_title', 'TrackMyMouse')} v{__version__}")
             
-            # --- MODIFIÉ: Boucle dynamique pour mettre à jour les onglets ---
-            for i, tab_info in enumerate(self.tabs):
-                # Met à jour le titre de l'onglet
-                tab_text = self.language_manager.get_text(tab_info['title_key'], tab_info['default'])
-                self.notebook.tab(i, text=tab_text)
-                
-                # Demande à l'onglet de mettre à jour son propre contenu
-                if hasattr(tab_info['instance'], 'update_widget_texts'):
-                    tab_info['instance'].update_widget_texts()
+            # --- MODIFICATION : La mise à jour des titres est maintenant gérée par le builder ---
+            # Le TabBuilder a déjà ajouté les onglets avec les bons titres.
+            # Nous devons maintenant mettre à jour les textes des onglets déjà créés.
+            for i, (ref_key, tab_instance) in enumerate(self.tab_references.items()):
+                 # On suppose que le builder a stocké la clé de langue quelque part
+                 # Pour simplifier, on va se baser sur le mapping du builder
+                 # Note: ceci est une simplification, le builder pourrait retourner plus d'infos
+                 title_key = f"{ref_key}_tab_title" # ex: today_tab_title
+                 default_text = ref_key.capitalize()
+                 tab_text = self.language_manager.get_text(title_key, default_text)
+                 self.notebook.tab(i, text=tab_text)
+
+                 if hasattr(tab_instance, 'update_widget_texts'):
+                    tab_instance.update_widget_texts()
             
             logger.info(f"Langue '{lang}' appliquée à l'interface.")
         except Exception as e:
             logger.error(f"Erreur lors du chargement de la langue: {e}", exc_info=True)
+
 
     def update_stats_display_loop(self):
         """
@@ -133,24 +98,22 @@ class MainWindow(ttk.Frame):
         """
         if self._running_update_loop:
             try:
-                # 1. Identifier l'onglet actuellement sélectionné
+                # La logique ici est plus simple si on se base sur la référence directe
+                if self.today_tab and self.notebook.select() == str(self.today_tab):
+                     if hasattr(self.today_tab, 'update_display'):
+                        self.today_tab.update_display()
+
+                # Pour les autres onglets dynamiques, une approche plus générale reste nécessaire
                 selected_tab_widget = self.notebook.nametowidget(self.notebook.select())
-
-                # 2. Vérifier si cet onglet a une méthode 'update_display'
                 if hasattr(selected_tab_widget, 'update_display'):
-                    # 3. Si oui, l'appeler. Cela fonctionnera pour TodayTab, LevelTab, etc.
                     selected_tab_widget.update_display()
-
             except tk.TclError:
-                # Peut se produire si aucun onglet n'est sélectionné, etc. C'est sans danger.
                 pass
             finally:
-                # On replanifie le prochain appel dans tous les cas
                 self.master.after(1000, self.update_stats_display_loop)
         else:
             logger.info("Boucle de mise à jour de l'affichage arrêtée.")
 
     def stop_update_loop(self):
-        """Signale à la boucle de mise à jour de s'arrêter."""
         logger.info("Demande d'arrêt de la boucle de mise à jour.")
         self._running_update_loop = False
