@@ -2,8 +2,8 @@
 
 import logging
 from pynput.mouse import Listener, Button
-from utils.event_manager import event_manager
-from utils.service_locator import service_locator
+from core.event_manager import event_manager
+from core.service_locator import service_locator
 
 logger = logging.getLogger(__name__)
 

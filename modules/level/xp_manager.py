@@ -10,7 +10,7 @@ from pynput.mouse import Button
 from utils.paths import resource_path
 from utils.math_utils import calculate_distance
 from modules.level.xp_repository import XPRepository
-from utils.service_locator import service_locator
+from core.service_locator import service_locator
 
 logger = logging.getLogger(__name__)
 

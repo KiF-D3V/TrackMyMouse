@@ -5,8 +5,8 @@ import time
 import datetime
 import logging
 
-from utils.event_manager import event_manager
-from utils.service_locator import service_locator
+from core.event_manager import event_manager
+from core.service_locator import service_locator
 
 # --- MODIFICATION : Logger au niveau du module pour la cohérence ---
 logger = logging.getLogger(__name__)

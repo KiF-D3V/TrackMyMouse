@@ -5,7 +5,7 @@ from tkinter import ttk, messagebox
 from typing import Callable
 import logging
 
-from utils.service_locator import service_locator
+from core.service_locator import service_locator
 
 logger = logging.getLogger(__name__)
 

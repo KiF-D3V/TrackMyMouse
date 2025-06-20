@@ -6,8 +6,8 @@ from pynput.mouse import Button
 from typing import Optional, List, Dict, Any 
 
 from utils.math_utils import calculate_distance
-from utils.service_locator import service_locator
-from utils.event_manager import event_manager
+from core.service_locator import service_locator
+from core.event_manager import event_manager
 from .stats_repository import StatsRepository
 
 logger = logging.getLogger(__name__)

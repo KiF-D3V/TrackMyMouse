@@ -6,7 +6,7 @@ import logging
 import datetime
 from typing import Dict, Any, Optional
 
-from utils.service_locator import service_locator
+from core.service_locator import service_locator
 from utils.unit_converter import format_distance, format_seconds_to_hms
 
 logger = logging.getLogger(__name__)

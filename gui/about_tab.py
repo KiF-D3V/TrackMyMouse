@@ -4,7 +4,7 @@ import tkinter as tk
 from tkinter import ttk
 
 # Importe le Service Locator pour accéder aux managers
-from utils.service_locator import service_locator
+from core.service_locator import service_locator
 # Importe la version de l'application
 from version import __version__
 

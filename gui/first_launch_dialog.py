@@ -2,7 +2,7 @@
 
 import tkinter as tk
 from tkinter import ttk, messagebox
-from utils.service_locator import service_locator
+from core.service_locator import service_locator
 import logging
 
 logger = logging.getLogger(__name__)

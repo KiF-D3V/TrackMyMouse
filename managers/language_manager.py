@@ -5,7 +5,7 @@ import os
 import logging
 
 from utils.paths import get_locales_path
-from utils.service_locator import service_locator
+from core.service_locator import service_locator
 
 # --- MODIFICATION : Logger au niveau du module pour la cohérence ---
 logger = logging.getLogger(__name__)

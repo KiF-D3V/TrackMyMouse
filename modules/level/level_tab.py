@@ -3,7 +3,7 @@
 import tkinter as tk
 from tkinter import ttk
 import logging
-from utils.service_locator import service_locator
+from core.service_locator import service_locator
 
 class LevelTab(ttk.Frame):
     """

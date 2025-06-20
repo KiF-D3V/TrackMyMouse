@@ -12,7 +12,7 @@ from gui import about_tab
 
 # Imports de configuration et du Service Locator
 from version import __version__
-from utils.service_locator import service_locator
+from core.service_locator import service_locator
 
 logger = logging.getLogger(__name__)
 

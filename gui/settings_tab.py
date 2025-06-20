@@ -4,7 +4,7 @@ import tkinter as tk
 from tkinter import ttk
 from typing import Dict, Callable
 
-from utils.service_locator import service_locator
+from core.service_locator import service_locator
 from .settings_components.language_settings_frame import LanguageSettingsFrame
 from .settings_components.unit_settings_frame import UnitSettingsFrame
 from .settings_components.screen_config_frame import ScreenConfigFrame
