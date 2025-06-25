@@ -4,14 +4,11 @@ import tkinter as tk
 from tkinter import ttk
 import logging
 import importlib
-from typing import Dict, Any
+import os
+from typing import Dict, Any, List
 
 from core.service_locator import service_locator
-
-# Import des onglets statiques
-from gui.today_tab import TodayTab
-from gui.settings_tab import SettingsTab
-from gui.about_tab import AboutTab
+from utils.paths import get_icon_path
 
 logger = logging.getLogger(__name__)
 
@@ -28,57 +25,73 @@ class TabBuilder:
         self.config_manager = service_locator.get_service("config_manager")
         self.language_manager = service_locator.get_service("language_manager")
         self.tab_references: Dict[str, Any] = {}
+        self.icon_references: Dict[str, tk.PhotoImage] = {}
 
     def build_all(self) -> Dict[str, Any]:
         """
         Orchestre la création de tous les onglets et les retourne.
         """
         logger.info("Début de la construction des onglets via TabBuilder...")
+
+        # Récupération des listes depuis la configuration
+        static_tabs_start = self.config_manager.get_app_config('STATIC_TABS_START', [])
+        optional_tabs = self.config_manager.get_app_config('OPTIONAL_TABS', [])
+        static_tabs_end = self.config_manager.get_app_config('STATIC_TABS_END', [])
         
-        self._build_static_tabs_start()
-        self._build_optional_tabs()
-        self._build_static_tabs_end()
+        # Construction des onglets
+        self._build_tabs_from_list(static_tabs_start, is_optional=False)
+        self._build_tabs_from_list(optional_tabs, is_optional=True)
+        self._build_tabs_from_list(static_tabs_end, is_optional=False)
         
         logger.info("Construction des onglets terminée.")
         return self.tab_references
 
-    def _add_tab(self, instance: ttk.Frame, title_key: str, default_text: str, ref_key: str = ""):
-        """Méthode utilitaire pour ajouter un onglet au notebook."""
-        tab_title = self.language_manager.get_text(title_key, default_text)
-        self.notebook.add(instance, text=tab_title)
-        if ref_key:
-            self.tab_references[ref_key] = instance
+    def _build_tabs_from_list(self, tab_list: List[Dict[str, Any]], is_optional: bool):
+        """
+        Méthode générique pour construire une liste d'onglets.
+        """
+        icons_directory = os.path.dirname(get_icon_path())
+        for tab_info in tab_list:
+            # Pour les onglets optionnels, on vérifie la préférence
+            if is_optional and not self.config_manager.get_show_tab(tab_info["id"]):
+                continue
 
-    def _build_static_tabs_start(self):
-        """Construit les onglets statiques du début (ex: Aujourd'hui)."""
-        logger.debug("Construction de l'onglet 'Aujourd'hui'.")
-        today_instance = TodayTab(self.notebook)
-        self._add_tab(today_instance, 'today_tab_title', 'Today', 'today')
+            try:
+                # --- Création de l'instance de l'onglet ---
+                module = importlib.import_module(tab_info["module_path"])
+                TabClass = getattr(module, tab_info["class_name"])
+                instance = TabClass(self.notebook)
+                
+                # --- Gestion de l'icône ---
+                icon_image = None
+                icon_filename = tab_info.get("icon_filename")
+                if icon_filename:
+                    icon_path = os.path.join(icons_directory, icon_filename)
+                    if os.path.exists(icon_path):
+                        # On crée l'objet PhotoImage et on le stocke pour éviter qu'il soit supprimé
+                        icon_image = tk.PhotoImage(file=icon_path)
+                        self.icon_references[tab_info["id"]] = icon_image
+                        logger.debug(f"Icône '{icon_filename}' chargée pour l'onglet '{tab_info['id']}'.")
+                    else:
+                        logger.warning(f"Fichier icône introuvable : {icon_path}")
 
-    def _build_optional_tabs(self):
-        """Construit dynamiquement les onglets optionnels."""
-        logger.debug("Construction des onglets optionnels...")
-        optional_tabs = self.config_manager.get_app_config('OPTIONAL_TABS', [])
+                # --- Ajout de l'onglet au Notebook ---
+                tab_title = self.language_manager.get_text(tab_info["title_key"], tab_info["id"].capitalize())
+                if icon_image:
+                    # Si l'image existe, on l'ajoute avec les bonnes options
+                    self.notebook.add(instance, text=tab_title, image=icon_image, compound='left')
+                else:
+                    # Sinon, on ajoute l'onglet sans les options d'image pour éviter le crash
+                    self.notebook.add(instance, text=tab_title)
+                                
+                # On sauvegarde la référence à l'instance de l'onglet
+                self.tab_references[tab_info["id"]] = {
+                    'instance': instance,
+                    'title_key': tab_info['title_key'],
+                    'default_text': tab_info['id'].capitalize(),
+                    'icon_image': icon_image
+                }
 
-        for tab_info in optional_tabs:
-            if self.config_manager.get_show_tab(tab_info["id"]):
-                try:
-                    logger.debug(f"Chargement du module pour l'onglet: {tab_info['id']}")
-                    module = importlib.import_module(tab_info["module_path"])
-                    TabClass = getattr(module, tab_info["class_name"])
-                    instance = TabClass(self.notebook)
-                    
-                    self._add_tab(instance, tab_info["title_key"], tab_info["id"].capitalize(), tab_info["id"])
-                    logger.info(f"Onglet '{tab_info['id']}' activé et chargé.")
-                except (ImportError, AttributeError) as e:
-                    logger.error(f"Impossible de charger l'onglet '{tab_info['id']}': {e}", exc_info=True)
-
-    def _build_static_tabs_end(self):
-        """Construit les onglets statiques de fin (ex: Paramètres, À propos)."""
-        logger.debug("Construction des onglets 'Paramètres' et 'À propos'.")
-        
-        settings_instance = SettingsTab(self.notebook)
-        self._add_tab(settings_instance, 'settings_tab_title', 'Settings', 'settings')
-
-        about_instance = AboutTab(self.notebook)
-        self._add_tab(about_instance, 'about_tab_title', 'About', 'about')
+                logger.info(f"Onglet '{tab_info['id']}' activé et chargé.")
+            except (ImportError, AttributeError) as e:
+                logger.error(f"Impossible de charger l'onglet '{tab_info['id']}': {e}", exc_info=True)

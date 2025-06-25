@@ -36,7 +36,6 @@ class MainWindow(ttk.Frame):
         self.notebook.pack(expand=True, fill='both')
 
         # --- MODIFIÉ: La création des onglets est maintenant dans une méthode dédiée ---
-        self.tabs = [] # Va stocker les informations sur les onglets à afficher
         self._setup_tabs()
 
         # Démarrage de la boucle de rafraîchissement des statistiques
@@ -57,7 +56,7 @@ class MainWindow(ttk.Frame):
         self.tab_references = builder.build_all()
         
         # On garde une référence directe à l'onglet "Aujourd'hui" si nécessaire
-        self.today_tab = self.tab_references.get('today')
+        self.today_tab = self.tab_references.get('today', {}).get('instance')
 
     def load_language(self):
         """
@@ -71,19 +70,22 @@ class MainWindow(ttk.Frame):
             # Mise à jour du titre de la fenêtre
             self.master.title(f"{self.language_manager.get_text('app_title', 'TrackMyMouse')} v{__version__}")
             
-            # --- MODIFICATION : La mise à jour des titres est maintenant gérée par le builder ---
-            # Le TabBuilder a déjà ajouté les onglets avec les bons titres.
-            # Nous devons maintenant mettre à jour les textes des onglets déjà créés.
-            for i, (ref_key, tab_instance) in enumerate(self.tab_references.items()):
-                 # On suppose que le builder a stocké la clé de langue quelque part
-                 # Pour simplifier, on va se baser sur le mapping du builder
-                 # Note: ceci est une simplification, le builder pourrait retourner plus d'infos
-                 title_key = f"{ref_key}_tab_title" # ex: today_tab_title
-                 default_text = ref_key.capitalize()
-                 tab_text = self.language_manager.get_text(title_key, default_text)
-                 self.notebook.tab(i, text=tab_text)
+            # On utilise les informations complètes retournées par le builder
+            for tab_data in self.tab_references.values():
+                tab_instance = tab_data['instance']
+                title_key = tab_data['title_key']
+                default_text = tab_data['default_text']
+                icon_image = tab_data['icon_image'] # On récupère l'icône
+                
+                # On met à jour le texte de l'onglet
+                tab_text = self.language_manager.get_text(title_key, default_text)
+                
+                # On met à jour l'onglet en utilisant son instance, c'est plus sûr
+                # On ré-applique aussi l'icône, car Tkinter peut parfois la perdre lors d'une mise à jour
+                self.notebook.tab(tab_instance, text=tab_text, image=icon_image)
 
-                 if hasattr(tab_instance, 'update_widget_texts'):
+                # On demande à l'onglet de mettre à jour son propre contenu (labels, etc.)
+                if hasattr(tab_instance, 'update_widget_texts'):
                     tab_instance.update_widget_texts()
             
             logger.info(f"Langue '{lang}' appliquée à l'interface.")
@@ -98,17 +100,12 @@ class MainWindow(ttk.Frame):
         """
         if self._running_update_loop:
             try:
-                # La logique ici est plus simple si on se base sur la référence directe
-                if self.today_tab and self.notebook.select() == str(self.today_tab):
-                     if hasattr(self.today_tab, 'update_display'):
-                        self.today_tab.update_display()
-
-                # Pour les autres onglets dynamiques, une approche plus générale reste nécessaire
+                # Cette approche générale suffit, elle fonctionne pour tous les onglets
                 selected_tab_widget = self.notebook.nametowidget(self.notebook.select())
                 if hasattr(selected_tab_widget, 'update_display'):
                     selected_tab_widget.update_display()
             except tk.TclError:
-                pass
+                pass # Se produit si la fenêtre est en cours de fermeture, sans danger.
             finally:
                 self.master.after(1000, self.update_stats_display_loop)
         else:
