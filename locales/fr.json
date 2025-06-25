@@ -13,13 +13,13 @@
     "tray_quit_app": "Quitter",
 
     "_MAIN_WINDOW_TABS": "Noms des onglets de la fenêtre principale",
-    "today_tab_title": "Aujourd'hui",
-    "history_tab_title": "Historique",
-    "records_tab_title": "Records",
-    "level_tab_title": "Niveau",
-    "rainmeter_tab_title": "Rainmeter",
-    "settings_tab_title": "Paramètres",
-    "about_tab_title": "À propos",
+    "today_tab_title": "AUJOURD'HUI",
+    "history_tab_title": "HISTORIQUE",
+    "records_tab_title": "RECORDS",
+    "level_tab_title": "NIVEAU",
+    "rainmeter_tab_title": "RAINMETER",
+    "settings_tab_title": "PARAMETRES",
+    "about_tab_title": "À PROPOS",
 
     "_TODAY_TAB_STATS_LABELS": "Labels de statistiques de l'onglet Aujourd'hui",
     "distance": "Distance",
@@ -114,7 +114,7 @@
     "on_date": "le",
 
     "_LEVEL_TAB": "Textes pour l'onglet et la section des Niveaux",
-    "level_tab_title": "Niveau",
+    "level_tab_title": "NIVEAU",
     "show_level_tab_label": "Afficher l'onglet Niveau",
     "level_label_text": "Niveau"
 }
